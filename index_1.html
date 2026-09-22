@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Requisición de Compra</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<style>
+  :root { color-scheme: light dark; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+  :root {
+    --navy: #DC1722;
+    --navy-deep: #7A0F17;
+    --turquoise: #F39C14;
+    --turquoise-deep: #C97A0E;
+    --paper: #FAF6EF;
+    --surface: #FFFFFF;
+    --ink: #1E1719;
+    --ink-soft: #6B6260;
+    --border: #E8DFD0;
+    --success: #2E7D32;
+    --success-bg: #E3F0E4;
+    --warn: #8A6D0F;
+    --warn-bg: #FBF0C9;
+    --critical: #DC1722;
+    --critical-bg: #FBE0E2;
+    --extra: #1E1719;
+    --extra-bg: #E9DFC7;
+    --shadow: 0 1px 2px rgba(30,23,25,.06), 0 8px 24px rgba(30,23,25,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --navy: #E5525F; --navy-deep: #D96470; --turquoise: #FFB648; --turquoise-deep: #FFCB73;
+      --paper: #1A1512; --surface: #241D19; --ink: #F5EDE4; --ink-soft: #C7B9AA; --border: #4A3B32;
+      --success: #6FCF7A; --success-bg: #1E3320; --warn: #E8C468; --warn-bg: #3A2E0C;
+      --critical: #F07A82; --critical-bg: #3A1418; --extra: #F5EDE4; --extra-bg: #4A3B22;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --navy: #E5525F; --navy-deep: #D96470; --turquoise: #FFB648; --turquoise-deep: #FFCB73;
+    --paper: #1A1512; --surface: #241D19; --ink: #F5EDE4; --ink-soft: #C7B9AA; --border: #4A3B32;
+    --success: #6FCF7A; --success-bg: #1E3320; --warn: #E8C468; --warn-bg: #3A2E0C;
+    --critical: #F07A82; --critical-bg: #3A1418; --extra: #F5EDE4; --extra-bg: #4A3B22;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    padding-inline: 16px;
+    padding-block: 0 32px;
+  }
+  a { color: var(--turquoise-deep); }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+
+  .topbar {
+    background: #FFFFFF;
+    margin-inline: -16px;
+    padding: 0 16px 26px;
+    color: #1E1719;
+    box-shadow: 0 1px 0 rgba(30,23,25,.08);
+  }
+  .brand-stripe {
+    height: 6px;
+    margin: 0 -16px 22px;
+    background: linear-gradient(90deg, #DC1722 0%, #F39C14 50%, #F9D71B 100%);
+  }
+  .topbar-inner { max-width: 720px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .brand-logo { height: 44px; width: auto; display: block; filter: drop-shadow(0 1px 2px rgba(30,23,25,.10)); }
+  h1 {
+    font-family: 'Sora', sans-serif;
+    font-weight: 800;
+    font-size: clamp(24px, 4vw, 30px);
+    line-height: 1.15;
+    margin: 0 0 8px;
+    text-wrap: balance;
+    color: #1E1719;
+  }
+  .lede { font-size: 15px; color: #6B6260; max-width: 52ch; margin: 0 0 4px; }
+  .code-line { font-size: 12px; color: #948B85; font-family: 'IBM Plex Mono', monospace; }
+
+  main { max-width: 720px; margin: 20px auto 0; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--turquoise); color: #fff;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+  }
+  .section-hint { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 18px; }
+
+  fieldset { border: none; margin: 0; padding: 0; }
+  .field { margin-bottom: 18px; }
+  .field:last-of-type { margin-bottom: 0; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 560px) {
+    .row2, .row3 { grid-template-columns: 1fr; }
+  }
+
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+  label .opt { font-weight: 400; color: var(--ink-soft); text-transform: none; }
+
+  input[type="text"], input[type="number"], input[type="email"], textarea, select {
+    width: 100%;
+    font: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 12px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  select { cursor: pointer; }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--turquoise);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--turquoise) 22%, transparent);
+  }
+  textarea { min-height: 64px; resize: vertical; }
+
+  .pill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 480px) { .pill-grid { grid-template-columns: 1fr; } }
+  .pill-grid input { position: absolute; opacity: 0; pointer-events: none; }
+  .pill {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; font-size: 13.5px; font-weight: 600;
+    cursor: pointer; position: relative; background: var(--paper);
+    transition: border-color .15s, background .15s;
+  }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-soft); flex-shrink: 0; }
+  .pill small { display: block; font-weight: 400; color: var(--ink-soft); font-size: 11.5px; margin-top: 1px; }
+  .pill:has(input:checked) { border-color: var(--turquoise); background: color-mix(in srgb, var(--turquoise) 10%, var(--surface)); }
+  .pill:has(input:checked) .dot { background: var(--turquoise-deep); }
+  .pill[data-kind="extra"]:has(input:checked) { border-color: var(--extra); background: var(--extra-bg); }
+  .pill[data-kind="extra"]:has(input:checked) .dot { background: var(--extra); }
+  .pill:has(input:focus-visible) { box-shadow: 0 0 0 3px color-mix(in srgb, var(--turquoise) 30%, transparent); }
+
+  .hint { font-size: 12px; color: var(--ink-soft); margin-top: 6px; }
+  .error-msg { font-size: 12.5px; color: var(--critical); margin-top: 12px; display: none; }
+  .error-msg.show { display: block; }
+
+  /* material rows */
+  #items-wrap { display: flex; flex-direction: column; gap: 12px; }
+  .item-row {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 16px 14px;
+    background: var(--paper);
+    position: relative;
+  }
+  .item-row-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px;
+  }
+  .item-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600; font-size: 12.5px; color: var(--navy-deep);
+  }
+  :root:not([data-theme="light"]) .item-num { color: var(--turquoise); }
+  :root[data-theme="dark"] .item-num { color: var(--turquoise); }
+  .item-remove {
+    font: inherit; font-size: 12px; font-weight: 600;
+    color: var(--critical); background: transparent; border: none;
+    cursor: pointer; padding: 4px 6px;
+  }
+  .item-remove:hover { text-decoration: underline; }
+  .item-grid {
+    display: grid;
+    grid-template-columns: 90px 110px 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  @media (max-width: 560px) { .item-grid { grid-template-columns: 1fr 1fr; } }
+  .item-grid .desc-cell { grid-column: 1 / -1; }
+  @media (max-width: 560px) { .item-grid .desc-cell { grid-column: 1 / -1; } }
+  .item-grid2 { display: grid; grid-template-columns: 1fr 150px; gap: 10px; }
+  @media (max-width: 560px) { .item-grid2 { grid-template-columns: 1fr; } }
+  .item-row label { font-size: 11.5px; margin-bottom: 4px; }
+  .item-row input, .item-row select, .item-row textarea { font-size: 13.5px; padding: 9px 10px; }
+  .item-row textarea { min-height: 44px; }
+  .item-row input[type="file"] { font-size: 12.5px; padding: 7px 0; }
+  .img-preview { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .img-preview img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+  .img-preview .warn { font-size: 11.5px; color: var(--critical); width: 100%; }
+
+  #add-item-btn {
+    font: inherit; font-weight: 600; font-size: 13.5px;
+    color: var(--turquoise-deep); background: color-mix(in srgb, var(--turquoise) 10%, var(--surface));
+    border: 1px dashed var(--turquoise); border-radius: 10px;
+    padding: 12px; cursor: pointer; width: 100%; text-align: center;
+  }
+  #add-item-btn:hover { background: color-mix(in srgb, var(--turquoise) 18%, var(--surface)); }
+
+  .submit-row { margin-top: 24px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  button.primary {
+    font: inherit; font-weight: 600; font-size: 14.5px; color: #FFFFFF;
+    background: var(--turquoise-deep); border: none; border-radius: 8px;
+    padding: 12px 22px; cursor: pointer; transition: background .15s, transform .1s;
+  }
+  button.primary:hover { background: var(--turquoise); }
+  button.primary:active { transform: translateY(1px); }
+  .submit-note { font-size: 12.5px; color: var(--ink-soft); }
+
+  /* confirmation */
+  .confirm { text-align: left; }
+  .confirm .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--success-bg); color: var(--success);
+    font-weight: 600; font-size: 13px; padding: 6px 12px; border-radius: 999px; margin-bottom: 16px;
+  }
+  .confirm .badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+  .ticket-id {
+    font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 22px;
+    letter-spacing: .02em; color: var(--navy-deep); margin: 0 0 4px;
+  }
+  :root:not([data-theme="light"]) .ticket-id { color: var(--turquoise); }
+  :root[data-theme="dark"] .ticket-id { color: var(--turquoise); }
+  .confirm p { color: var(--ink-soft); font-size: 14px; line-height: 1.55; margin: 0 0 18px; }
+  .confirm-summary {
+    border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px;
+    font-size: 13px; display: grid; gap: 8px; margin-bottom: 12px; background: var(--paper);
+  }
+  .confirm-summary div { display: flex; justify-content: space-between; gap: 12px; }
+  .confirm-summary dt { color: var(--ink-soft); }
+  .confirm-summary dd { margin: 0; font-weight: 500; text-align: right; }
+  .confirm-items { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+  .confirm-items table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .confirm-items th, .confirm-items td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .confirm-items th { background: var(--paper); color: var(--ink-soft); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .02em; }
+  .confirm-items tr:last-child td { border-bottom: none; }
+  button.secondary {
+    font: inherit; font-weight: 600; font-size: 13.5px; color: var(--navy-deep);
+    background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 18px; cursor: pointer;
+  }
+  :root:not([data-theme="light"]) button.secondary { color: var(--navy-deep); }
+  button.secondary:hover { border-color: var(--turquoise); }
+  .resend { margin-top: 10px; font-size: 12.5px; }
+
+  footer { max-width: 720px; margin: 22px auto 0; text-align: center; font-size: 12px; color: var(--ink-soft); }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand-stripe"></div>
+  <div class="topbar-inner">
+    <div class="brand"><img class="brand-logo" src="data:image/png;base64,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" alt="Grupo Firme"></div>
+    <h1>Requisición de Compra</h1>
+    <p class="lede">Registra los materiales o servicios que necesitas y tu solicitud llega directo a Administración para su autorización.</p>
+    <p class="code-line">FO-GA-02 · Rev. 001</p>
+  </div>
+</div>
+
+<main>
+  <div class="card">
+    <p class="section-title"><span class="section-num">1</span>Datos de la solicitud</p>
+    <p class="section-hint">Quién solicita y para qué empresa / centro de costo se aplicará la compra.</p>
+
+    <form id="req-form" novalidate>
+      <fieldset>
+        <div class="row2">
+          <div class="field">
+            <label for="f-solicitante">Nombre de quien solicita</label>
+            <input type="text" id="f-solicitante" name="solicitante" autocomplete="name" required>
+          </div>
+          <div class="field">
+            <label for="f-autoriza">Nombre de quien autoriza</label>
+            <input type="text" id="f-autoriza" name="autoriza" placeholder="Jefe directo o quien autoriza la compra" required>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="f-contacto">Correo o extensión de contacto</label>
+            <input type="text" id="f-contacto" name="contacto" placeholder="tucorreo@grupofirme.com o ext. 105" required>
+          </div>
+          <div class="field">
+            <label for="f-empresa">Empresa</label>
+            <select id="f-empresa" name="empresa" required>
+              <option value="" disabled selected>Selecciona una empresa</option>
+              <option>GRUPO EMPRESARIAL FIRME</option>
+              <option>GRUPO FIRME DE MEXICO</option>
+              <option>CONTROL DE INGENIERIA Y SERVICIOS AÑADIDOS</option>
+              <option>CONSTRUCCIONES Y TERRACERIAS VANGUARDIA</option>
+              <option>COMERCIALIZADORA MUPO</option>
+              <option>INMOBILIARIA ATARDECER DE LA PAZ</option>
+              <option>PROYECTOS Y DESARROLLOS PUNTA CORTEZ</option>
+              <option>SANTA CRUZ FID</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="f-cc">Centro de costo (CC)</label>
+            <input type="text" id="f-cc" name="cc" placeholder="Ej. CC-105 / Obra La Herencia" required>
+          </div>
+          <div class="field">
+            <label for="f-obra">Obra <span class="opt">(opcional)</span></label>
+            <input type="text" id="f-obra" name="obra" placeholder="Ej. GF-000">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f-oficina">Oficina / Ubicación <span class="opt">(opcional)</span></label>
+          <input type="text" id="f-oficina" name="oficina" placeholder="Ej. Oficina Félix Ortega">
+        </div>
+
+        <div class="field">
+          <label>Tipo de solicitud</label>
+          <div class="pill-grid" role="radiogroup" aria-label="Tipo de solicitud">
+            <label class="pill" data-kind="normal"><input type="radio" name="tipo" value="Normal" checked><span class="dot"></span><span>Normal<small>Compra dentro del flujo habitual</small></span></label>
+            <label class="pill" data-kind="extra"><input type="radio" name="tipo" value="Extraordinaria"><span class="dot"></span><span>Extraordinaria<small>Urgente o fuera de presupuesto ordinario</small></span></label>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="field" style="margin-top:20px;">
+        <p class="section-title" style="margin-bottom:2px;"><span class="section-num">2</span>Materiales / servicios solicitados</p>
+        <p class="section-hint" style="margin-bottom:14px;">Agrega un renglón por cada artículo. Puedes incluir varios en una sola requisición.</p>
+
+        <div id="items-wrap"></div>
+        <button type="button" id="add-item-btn">+ Agregar material</button>
+      </div>
+
+      <p class="error-msg" id="error-msg">Por favor completa todos los campos requeridos, incluyendo al menos un material con cantidad, unidad, descripción y prioridad.</p>
+
+      <div class="submit-row">
+        <button type="submit" class="primary" id="submit-btn">Enviar requisición</button>
+        <span class="submit-note">Se abrirá tu programa de correo con todo listo para enviar.</span>
+      </div>
+    </form>
+  </div>
+
+  <div class="card confirm" id="confirm-view" hidden>
+    <span class="badge" id="confirm-badge">Requisición enviada</span>
+    <p class="ticket-id" id="confirm-id">REQ-000000-0000</p>
+    <p id="confirm-text">Tu requisición ya llegó a Administración.</p>
+    <dl class="confirm-summary" id="confirm-summary"></dl>
+    <div class="confirm-items"><table id="confirm-items-table"></table></div>
+    <button type="button" class="secondary" id="resend-btn" hidden>Abrir correo de nuevo</button>
+    <div class="resend"><a href="#" id="reset-link">Enviar otra requisición</a></div>
+  </div>
+
+  <footer>Administración · Grupo Firme — las requisiciones se envían por correo a Oscar Cota y Administración.</footer>
+</main>
+
+<script>
+(function () {
+  var form = document.getElementById('req-form');
+  var confirmView = document.getElementById('confirm-view');
+  var errorMsg = document.getElementById('error-msg');
+  var confirmId = document.getElementById('confirm-id');
+  var confirmSummary = document.getElementById('confirm-summary');
+  var confirmItemsTable = document.getElementById('confirm-items-table');
+  var confirmText = document.getElementById('confirm-text');
+  var resendBtn = document.getElementById('resend-btn');
+  var resetLink = document.getElementById('reset-link');
+  var itemsWrap = document.getElementById('items-wrap');
+  var addItemBtn = document.getElementById('add-item-btn');
+
+  var DEST_EMAILS = ['oscar.cota.gfm@gmail.com', 'aux.adm.gfm@gmail.com'];
+  // Pega aquí la URL de tu Web App de Google Apps Script (Code.gs) cuando la despliegues.
+  // Mientras esté vacía, el formulario usa únicamente el correo (mailto) para enviarse.
+  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzP6eJ7PI653CMcyfAkbgsCxY9qLWWD6kPQrLixoMwPEW8QZKr2ozyAm0ZAsmQ_tNPO/exec';
+  var lastMailto = '';
+  var itemCount = 0;
+
+  function uid() { return 'r' + (++itemCount) + '_' + Math.random().toString(36).slice(2, 6); }
+
+  function addItemRow(prefill) {
+    prefill = prefill || {};
+    var id = uid();
+    var row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.rowId = id;
+    row.innerHTML =
+      '<div class="item-row-head">' +
+        '<span class="item-num">Material #<span class="row-index"></span></span>' +
+        '<button type="button" class="item-remove">Quitar</button>' +
+      '</div>' +
+      '<div class="item-grid">' +
+        '<div class="field"><label>Cantidad</label><input type="number" min="0" step="any" class="f-cantidad" required></div>' +
+        '<div class="field"><label>Unidad</label><input type="text" class="f-unidad" placeholder="Pza, caja, m..." required></div>' +
+        '<div class="field desc-cell"><label>Descripción</label><input type="text" class="f-descripcion" placeholder="Qué es y para qué se usa" required></div>' +
+      '</div>' +
+      '<div class="item-grid2">' +
+        '<div class="field"><label>Justificación <span class="opt">(opcional)</span></label><textarea class="f-justificacion" placeholder="Por qué se necesita"></textarea></div>' +
+        '<div class="field">' +
+          '<label>Prioridad</label>' +
+          '<select class="f-prioridad" required>' +
+            '<option value="" disabled selected>Elige...</option>' +
+            '<option>Baja</option><option>Media</option><option>Alta</option><option>Urgente</option>' +
+          '</select>' +
+        '</div>' +
+      '</div>' +
+      '<div class="field" style="margin-top:10px;"><label>SKU / clave <span class="opt">(opcional)</span></label><input type="text" class="f-sku" placeholder="Si aplica"></div>' +
+      '<div class="field" style="margin-top:10px;"><label>Imágenes de referencia <span class="opt">(opcional, máx. 3)</span></label>' +
+        '<input type="file" accept="image/*" multiple class="f-imagen">' +
+        '<div class="img-preview"></div>' +
+      '</div>';
+
+    itemsWrap.appendChild(row);
+    row.querySelector('.item-remove').addEventListener('click', function () {
+      if (itemsWrap.children.length <= 1) return;
+      row.remove();
+      renumberItems();
+    });
+    row.querySelector('.f-imagen').addEventListener('change', function (ev) {
+      var input = ev.target;
+      var preview = row.querySelector('.img-preview');
+      preview.innerHTML = '';
+      var files = Array.prototype.slice.call(input.files, 0, 3);
+      if (input.files.length > 3) {
+        var warn = document.createElement('div');
+        warn.className = 'warn';
+        warn.textContent = 'Máximo 3 imágenes; se usarán las primeras 3.';
+        preview.appendChild(warn);
+      }
+      files.forEach(function (f) {
+        var img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        img.alt = f.name;
+        preview.appendChild(img);
+      });
+    });
+    renumberItems();
+  }
+
+  function resizeImageFile(file, maxDim, quality) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var img = new Image();
+        img.onload = function () {
+          var w = img.width, h = img.height;
+          var scale = Math.min(1, maxDim / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * scale));
+          var ch = Math.max(1, Math.round(h * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = cw; canvas.height = ch;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var mime = 'image/jpeg';
+          var dataUrl = canvas.toDataURL(mime, quality || 0.72);
+          resolve({ filename: (file.name || 'imagen').replace(/\.[^.]+$/, '') + '.jpg', mimeType: mime, data: dataUrl.split(',')[1] });
+        };
+        img.onerror = function () { reject(new Error('img_load_failed')); };
+        img.src = e.target.result;
+      };
+      reader.onerror = function () { reject(new Error('read_failed')); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renumberItems() {
+    var rows = itemsWrap.querySelectorAll('.item-row');
+    rows.forEach(function (r, i) {
+      r.querySelector('.row-index').textContent = i + 1;
+      r.querySelector('.item-remove').style.visibility = rows.length > 1 ? 'visible' : 'hidden';
+    });
+  }
+
+  addItemBtn.addEventListener('click', function () { addItemRow(); });
+  addItemRow();
+
+  function fieldValue(name) {
+    var el = form.elements[name];
+    if (!el) return '';
+    if (el.length && el[0] && el[0].type === 'radio') {
+      var checked = form.querySelector('[name="' + name + '"]:checked');
+      return checked ? checked.value : '';
+    }
+    return (el.value || '').trim();
+  }
+
+  function collectItems() {
+    var rows = itemsWrap.querySelectorAll('.item-row');
+    var items = [];
+    var valid = true;
+    rows.forEach(function (r) {
+      var cantidad = r.querySelector('.f-cantidad').value.trim();
+      var unidad = r.querySelector('.f-unidad').value.trim();
+      var descripcion = r.querySelector('.f-descripcion').value.trim();
+      var prioridad = r.querySelector('.f-prioridad').value;
+      var sku = r.querySelector('.f-sku').value.trim();
+      var justificacion = r.querySelector('.f-justificacion').value.trim();
+      if (!cantidad || !unidad || !descripcion || !prioridad) { valid = false; }
+      items.push({ row: r, cantidad: cantidad, unidad: unidad, descripcion: descripcion, sku: sku, justificacion: justificacion, prioridad: prioridad });
+    });
+    return { items: items, valid: valid };
+  }
+
+  async function attachItemImages(items) {
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      var fileInput = it.row.querySelector('.f-imagen');
+      var files = fileInput && fileInput.files ? Array.prototype.slice.call(fileInput.files, 0, 3) : [];
+      var out = [];
+      for (var j = 0; j < files.length; j++) {
+        try { out.push(await resizeImageFile(files[j], 1280, 0.72)); } catch (e) { /* se omite esa imagen si falla */ }
+      }
+      it.imagenes = out;
+      delete it.row;
+    }
+    return items;
+  }
+
+  function makeFolio() {
+    var d = new Date();
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    var datePart = String(d.getFullYear()).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate());
+    var rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return 'REQ-' + datePart + '-' + rand;
+  }
+
+  function buildMailto(t) {
+    var subject = 'Requisición de Compra ' + t.id + ' — ' + t.empresa + (t.tipo === 'Extraordinaria' ? ' [EXTRAORDINARIA]' : '') + ' — ' + t.solicitante;
+    var lines = [
+      'Folio: ' + t.id,
+      'Fecha: ' + t.fecha,
+      'Solicita: ' + t.solicitante,
+      'Autoriza: ' + t.autoriza,
+      'Contacto: ' + t.contacto,
+      'Empresa: ' + t.empresa,
+      'Centro de costo (CC): ' + t.cc,
+      'Obra: ' + (t.obra || '—'),
+      'Oficina / Ubicación: ' + (t.oficina || '—'),
+      'Tipo de solicitud: ' + t.tipo,
+      '',
+      'Materiales / servicios solicitados:'
+    ];
+    t.items.forEach(function (it, i) {
+      lines.push('');
+      lines.push((i + 1) + '. ' + it.cantidad + ' ' + it.unidad + ' — ' + it.descripcion);
+      if (it.sku) lines.push('   SKU/clave: ' + it.sku);
+      lines.push('   Prioridad: ' + it.prioridad);
+      if (it.justificacion) lines.push('   Justificación: ' + it.justificacion);
+      if (it.imagenes && it.imagenes.length) lines.push('   Imágenes de referencia: ' + it.imagenes.length + ' adjunta(s) (disponibles en el Panel de Requisiciones)');
+    });
+    var body = lines.join('\n');
+    return 'mailto:' + DEST_EMAILS.join(',') + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  }
+
+  function saveLocalHistory(t) {
+    try {
+      var key = 'gfm_req_local';
+      var raw = localStorage.getItem(key);
+      var list = raw ? JSON.parse(raw) : [];
+      list.unshift({ id: t.id, fecha: t.fecha, empresa: t.empresa, tipo: t.tipo });
+      localStorage.setItem(key, JSON.stringify(list.slice(0, 20)));
+    } catch (e) { /* per-device convenience only; ignore failures */ }
+  }
+
+  form.addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+
+    var solicitante = fieldValue('solicitante');
+    var autoriza = fieldValue('autoriza');
+    var contacto = fieldValue('contacto');
+    var empresa = fieldValue('empresa');
+    var cc = fieldValue('cc');
+    var obra = fieldValue('obra');
+    var oficina = fieldValue('oficina');
+    var tipo = fieldValue('tipo');
+    var itemsResult = collectItems();
+
+    if (!solicitante || !autoriza || !contacto || !empresa || !cc || !tipo || !itemsResult.valid || itemsResult.items.length === 0) {
+      errorMsg.classList.add('show');
+      return;
+    }
+    errorMsg.classList.remove('show');
+
+    var submitBtn = document.getElementById('submit-btn');
+    var submitBtnOriginalText = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando imágenes...'; }
+    var processedItems;
+    try {
+      processedItems = await attachItemImages(itemsResult.items);
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitBtnOriginalText; }
+    }
+
+    var req = {
+      id: makeFolio(),
+      fecha: new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }),
+      solicitante: solicitante, autoriza: autoriza, contacto: contacto, empresa: empresa, cc: cc,
+      obra: obra, oficina: oficina, tipo: tipo, items: processedItems,
+      estado: 'pendiente'
+    };
+
+    lastMailto = buildMailto(req);
+    saveLocalHistory(req);
+
+    confirmId.textContent = req.id;
+    if (req.tipo === 'Extraordinaria') {
+      document.getElementById('confirm-badge').style.background = 'var(--extra-bg)';
+      document.getElementById('confirm-badge').style.color = 'var(--extra)';
+    }
+    confirmSummary.innerHTML = '';
+    [
+      ['Solicita', req.solicitante], ['Autoriza', req.autoriza], ['Empresa', req.empresa],
+      ['Centro de costo', req.cc], ['Tipo', req.tipo],
+      ['Obra / Oficina', [req.obra, req.oficina].filter(Boolean).join(' · ') || '—'],
+      ['Contacto', req.contacto]
+    ].forEach(function (pair) {
+      var row = document.createElement('div');
+      var dt = document.createElement('dt'); dt.textContent = pair[0];
+      var dd = document.createElement('dd'); dd.textContent = pair[1];
+      row.appendChild(dt); row.appendChild(dd);
+      confirmSummary.appendChild(row);
+    });
+
+    var rowsHtml = '<thead><tr><th>Cant.</th><th>Unidad</th><th>Descripción</th><th>Prioridad</th></tr></thead><tbody>';
+    req.items.forEach(function (it) {
+      rowsHtml += '<tr><td>' + it.cantidad + '</td><td>' + it.unidad + '</td><td>' + it.descripcion + '</td><td>' + it.prioridad + '</td></tr>';
+    });
+    rowsHtml += '</tbody>';
+    confirmItemsTable.innerHTML = rowsHtml;
+
+    form.hidden = true;
+    confirmView.hidden = false;
+
+    if (APPS_SCRIPT_URL) {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(req)
+      }).then(function (res) {
+        if (!res.ok) throw new Error('bad status');
+        confirmText.textContent = 'Tu requisición ya llegó a Administración automáticamente y quedó registrada en el panel.';
+        resendBtn.hidden = true;
+      }).catch(function () {
+        confirmText.textContent = 'Se abrió tu programa de correo con la requisición ya redactada. Solo confirma el envío ahí para que llegue a Administración. Si no se abrió nada, usa el botón de abajo.';
+        resendBtn.hidden = false;
+        window.location.href = lastMailto;
+      });
+    } else {
+      confirmText.textContent = 'Se abrió tu programa de correo con la requisición ya redactada. Solo confirma el envío ahí para que llegue a Administración. Si no se abrió nada, usa el botón de abajo.';
+      resendBtn.hidden = false;
+      window.location.href = lastMailto;
+    }
+  });
+
+  resendBtn.addEventListener('click', function () { if (lastMailto) window.location.href = lastMailto; });
+
+  resetLink.addEventListener('click', function (ev) {
+    ev.preventDefault();
+    form.reset();
+    itemsWrap.innerHTML = '';
+    itemCount = 0;
+    addItemRow();
+    errorMsg.classList.remove('show');
+    confirmView.hidden = true;
+    form.hidden = false;
+    document.getElementById('confirm-badge').style.background = '';
+    document.getElementById('confirm-badge').style.color = '';
+  });
+})();
+</script>
+
+</body>
+</html>
