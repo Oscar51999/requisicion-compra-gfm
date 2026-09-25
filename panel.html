@@ -87,7 +87,7 @@
   button.danger:hover { border-color: var(--critical); background: var(--critical-bg); }
 
   .list { display: flex; flex-direction: column; gap: 10px; }
-  .req { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .req { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); cursor: pointer; }
   .req[data-extra="1"] { border-left: 3px solid var(--extra); }
   .req-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
   .req-id { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 14px; color: var(--navy-deep); }
@@ -143,6 +143,11 @@
   @media (max-width: 480px) { .modal .row2 { grid-template-columns: 1fr; } }
   .modal .hint { font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
   .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+  .detail-value { font-size: 13.5px; color: var(--ink); }
+  .detail-value a { color: var(--turquoise-deep); }
+  .detail-block { white-space: pre-wrap; line-height: 1.55; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; min-height: 20px; }
+  .detail-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .detail-head .tags { display: flex; gap: 6px; flex-wrap: wrap; }
 
   .gate { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 40px 16px; }
   .gate-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 32px 28px; max-width: 340px; width: 100%; text-align: center; }
@@ -223,6 +228,7 @@
       <option value="Extraordinaria">Solo extraordinaria</option>
     </select>
     <span class="spacer"></span>
+    <button class="secondary" id="report-btn">Generar reporte (PDF)</button>
     <button class="primary" id="new-btn">+ Nueva requisición</button>
   </div>
 
@@ -294,8 +300,43 @@
     </form>
   </div>
 </div>
+
+<div class="modal-backdrop" id="detail-backdrop" hidden>
+  <div class="modal">
+    <div class="detail-head">
+      <h2 id="detail-title" style="margin:0;">Requisición</h2>
+      <div class="tags" id="detail-tags"></div>
+    </div>
+    <div class="field"><label>Solicitante</label><div id="detail-who" class="detail-value"></div></div>
+    <div class="row2">
+      <div class="field"><label>Autoriza</label><div id="detail-autoriza" class="detail-value"></div></div>
+      <div class="field"><label>Contacto</label><div id="detail-contacto" class="detail-value"></div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Centro de costo (CC)</label><div id="detail-cc" class="detail-value"></div></div>
+      <div class="field"><label>Obra</label><div id="detail-obra" class="detail-value"></div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Insumo a utilizar</label><div id="detail-insumo" class="detail-value"></div></div>
+      <div class="field"><label>Presupuesto disponible</label><div id="detail-presupuesto" class="detail-value"></div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Oficina / Ubicación</label><div id="detail-oficina" class="detail-value"></div></div>
+      <div class="field"><label>Recibido</label><div id="detail-fecha" class="detail-value"></div></div>
+    </div>
+    <div class="field">
+      <label>Materiales / servicios</label>
+      <div class="req-items" id="detail-items"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="secondary" id="detail-close">Cerrar</button>
+    </div>
+  </div>
+</div>
 </div><!-- /app-content -->
 
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script>
 (function () {
   var gate = document.getElementById('gate');
@@ -343,6 +384,22 @@
   var searchInput = document.getElementById('search');
   var filterEstado = document.getElementById('filter-estado');
   var filterTipo = document.getElementById('filter-tipo');
+  var reportBtn = document.getElementById('report-btn');
+
+  var detailBackdrop = document.getElementById('detail-backdrop');
+  var detailTitle = document.getElementById('detail-title');
+  var detailTags = document.getElementById('detail-tags');
+  var detailWho = document.getElementById('detail-who');
+  var detailAutoriza = document.getElementById('detail-autoriza');
+  var detailContacto = document.getElementById('detail-contacto');
+  var detailCc = document.getElementById('detail-cc');
+  var detailObra = document.getElementById('detail-obra');
+  var detailInsumo = document.getElementById('detail-insumo');
+  var detailPresupuesto = document.getElementById('detail-presupuesto');
+  var detailOficina = document.getElementById('detail-oficina');
+  var detailFecha = document.getElementById('detail-fecha');
+  var detailItems = document.getElementById('detail-items');
+  var detailClose = document.getElementById('detail-close');
 
   // Pega aquí la URL de tu Web App de Google Apps Script (la misma que en el formulario de captura).
   var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzP6eJ7PI653CMcyfAkbgsCxY9qLWWD6kPQrLixoMwPEW8QZKr2ozyAm0ZAsmQ_tNPO/exec';
@@ -382,6 +439,118 @@
     document.getElementById('stat-total').textContent = reqs.length;
   }
 
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function buildReportFilename() {
+    var d = new Date();
+    return 'reporte-requisiciones-' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) +
+      '-' + pad2(d.getHours()) + pad2(d.getMinutes()) + '.pdf';
+  }
+
+  function generarReportePDF() {
+    if (!allReqs.length) {
+      alert('No hay requisiciones todavía para incluir en el reporte.');
+      return;
+    }
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      alert('No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo.');
+      return;
+    }
+
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ unit: 'pt', format: 'letter' });
+    if (typeof doc.autoTable !== 'function') {
+      alert('No se pudo cargar la tabla del reporte. Revisa tu conexión e intenta de nuevo.');
+      return;
+    }
+    var pageWidth = doc.internal.pageSize.getWidth();
+    var pageHeight = doc.internal.pageSize.getHeight();
+    var navy = [35, 64, 103];
+    var ink = [29, 29, 27];
+    var inkSoft = [107, 98, 96];
+
+    doc.setProperties({ title: 'Reporte de Requisiciones · Grupo Firme' });
+
+    doc.setFillColor(navy[0], navy[1], navy[2]);
+    doc.rect(0, 0, pageWidth, 70, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('Panel de Requisiciones · Grupo Firme', 40, 32);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('Reporte generado el ' + new Date().toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' }), 40, 50);
+
+    var counts2 = { pendiente: 0, autorizada: 0, rechazada: 0, comprada: 0 };
+    allReqs.forEach(function (r) { if (counts2.hasOwnProperty(r.estado)) counts2[r.estado]++; });
+
+    var y = 96;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(ink[0], ink[1], ink[2]);
+    doc.text('Resumen', 40, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(inkSoft[0], inkSoft[1], inkSoft[2]);
+    y += 16;
+    doc.text('Total de requisiciones: ' + allReqs.length, 40, y);
+    y += 14;
+    doc.text('Pendientes: ' + counts2.pendiente + '   Autorizadas: ' + counts2.autorizada + '   Rechazadas: ' + counts2.rechazada + '   Compradas: ' + counts2.comprada, 40, y);
+
+    var rows = [];
+    allReqs.forEach(function (r) {
+      var itemsText = (r.items || []).map(function (it) {
+        return (it.cantidad || '') + ' ' + (it.unidad || '') + ' ' + (it.descripcion || '');
+      }).join(' | ');
+      rows.push([
+        r.id || '',
+        r.fecha || fmtTime(r.receivedAt) || '',
+        r.solicitante || '',
+        r.empresa || '',
+        r.cc || '',
+        r.tipo || '',
+        ESTADO_LABEL[r.estado] || r.estado || '',
+        itemsText.slice(0, 200)
+      ]);
+    });
+
+    doc.autoTable({
+      startY: y + 16,
+      head: [['Folio', 'Recibido', 'Solicitante', 'Empresa', 'CC', 'Tipo', 'Estado', 'Materiales']],
+      body: rows,
+      styles: { font: 'helvetica', fontSize: 8, cellPadding: 4, textColor: ink, overflow: 'linebreak', valign: 'top' },
+      headStyles: { fillColor: navy, textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [244, 238, 227] },
+      columnStyles: {
+        0: { cellWidth: 62 },
+        1: { cellWidth: 68 },
+        2: { cellWidth: 64 },
+        3: { cellWidth: 70 },
+        4: { cellWidth: 46 },
+        5: { cellWidth: 42 },
+        6: { cellWidth: 48 },
+        7: { cellWidth: 'auto' }
+      },
+      margin: { left: 40, right: 40 },
+      didDrawPage: function (data) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(inkSoft[0], inkSoft[1], inkSoft[2]);
+        doc.text('Panel de Requisiciones · Grupo Firme — página ' + data.pageNumber, 40, pageHeight - 20);
+      }
+    });
+
+    doc.save(buildReportFilename());
+  }
+
+  reportBtn.addEventListener('click', function () {
+    try {
+      generarReportePDF();
+    } catch (err) {
+      alert('No se pudo generar el reporte. Intenta de nuevo.');
+    }
+  });
+
   function matchesFilters(r) {
     var q = searchInput.value.trim().toLowerCase();
     if (q) {
@@ -411,6 +580,56 @@
       fetch(buildUrl({ action: 'update', id: id, field: field, value: value })).catch(function () {});
     }, 350);
   }
+
+  function fmtVal(v) { return (v === undefined || v === null || v === '') ? '—' : v; }
+
+  function openDetail(r) {
+    detailTitle.textContent = r.id;
+    detailTags.textContent = '';
+    if (r.tipo === 'Extraordinaria') {
+      var tipoTag = document.createElement('span');
+      tipoTag.className = 'tag tipo-extra';
+      tipoTag.textContent = 'Extraordinaria';
+      detailTags.appendChild(tipoTag);
+    }
+    var estTag = document.createElement('span');
+    estTag.className = 'tag';
+    estTag.textContent = ESTADO_LABEL[r.estado] || r.estado || '—';
+    detailTags.appendChild(estTag);
+
+    detailWho.textContent = (r.solicitante || 'Sin nombre') + (r.empresa ? ' \u00b7 ' + r.empresa : '');
+    detailAutoriza.textContent = fmtVal(r.autoriza);
+    detailContacto.textContent = fmtVal(r.contacto);
+    detailCc.textContent = fmtVal(r.cc);
+    detailObra.textContent = fmtVal(r.obra);
+    detailInsumo.textContent = fmtVal(r.insumo);
+    detailPresupuesto.textContent = fmtVal(r.presupuesto);
+    detailOficina.textContent = fmtVal(r.oficina);
+    detailFecha.textContent = r.fecha || fmtTime(r.receivedAt) || '—';
+
+    var rowsHtml = '<table><thead><tr><th>Cant.</th><th>Unidad</th><th>Descripci\u00f3n</th><th>Prioridad</th></tr></thead><tbody>';
+    (r.items || []).forEach(function (it) {
+      var imgsHtml = '';
+      if (it.imagenesUrls && it.imagenesUrls.length) {
+        imgsHtml = '<div class="item-imgs">' + it.imagenesUrls.map(function (img) {
+          return '<a href="' + img.url + '" target="_blank" rel="noopener"><img src="' + img.thumb + '" alt="Imagen de referencia" loading="lazy"></a>';
+        }).join('') + '</div>';
+      }
+      rowsHtml += '<tr><td>' + (it.cantidad || '') + '</td><td>' + (it.unidad || '') + '</td><td>' + (it.descripcion || '') +
+        (it.justificacion ? '<div class="just">' + it.justificacion + '</div>' : '') + imgsHtml + '</td><td>' + (it.prioridad || '') + '</td></tr>';
+    });
+    rowsHtml += '</tbody></table>';
+    detailItems.innerHTML = rowsHtml;
+
+    detailBackdrop.hidden = false;
+  }
+
+  function closeDetail() { detailBackdrop.hidden = true; }
+
+  detailClose.addEventListener('click', closeDetail);
+  detailBackdrop.addEventListener('click', function (ev) {
+    if (ev.target === detailBackdrop) closeDetail();
+  });
 
   function createCard(r) {
     var card = document.createElement('div');
@@ -498,6 +717,12 @@
       scheduleUpdate(r.id, 'estado', estadoSel.value);
     });
 
+    var viewBtn = document.createElement('button');
+    viewBtn.className = 'secondary';
+    viewBtn.type = 'button';
+    viewBtn.textContent = 'Ver detalle';
+    viewBtn.addEventListener('click', function (ev) { ev.stopPropagation(); openDetail(r); });
+
     var delBtn = document.createElement('button');
     delBtn.className = 'secondary';
     delBtn.type = 'button';
@@ -522,6 +747,7 @@
     });
 
     footerLeft.appendChild(estadoSel);
+    footerLeft.appendChild(viewBtn);
     footerLeft.appendChild(delBtn);
 
     var time = document.createElement('div');
@@ -536,6 +762,12 @@
     card.appendChild(meta);
     card.appendChild(itemsWrap);
     card.appendChild(footer);
+
+    card.addEventListener('click', function (ev) {
+      if (ev.target.closest('select, button, a')) return;
+      openDetail(r);
+    });
+
     return card;
   }
 
