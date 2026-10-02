@@ -151,6 +151,8 @@
 
   .pill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   @media (max-width: 480px) { .pill-grid { grid-template-columns: 1fr; } }
+  .pill-grid.pill-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 640px) { .pill-grid.pill-grid-3 { grid-template-columns: 1fr; } }
   .pill-grid input { position: absolute; opacity: 0; pointer-events: none; }
   .pill {
     display: flex; align-items: center; gap: 8px;
@@ -349,6 +351,15 @@
         <div class="field">
           <label for="f-oficina">Oficina / Ubicación <span class="opt">(opcional)</span></label>
           <input type="text" id="f-oficina" name="oficina" placeholder="Ej. Oficina Félix Ortega">
+        </div>
+
+        <div class="field">
+          <label>Categoría</label>
+          <div class="pill-grid pill-grid-3" role="radiogroup" aria-label="Categoría">
+            <label class="pill" data-kind="activo-fijo"><input type="radio" name="categoria" value="Activo Fijo"><span class="dot"></span><span>Activo fijo<small>Mobiliario, equipo o bien duradero</small></span></label>
+            <label class="pill" data-kind="oficina"><input type="radio" name="categoria" value="Insumos de Oficina"><span class="dot"></span><span>Insumos de oficina<small>Papelería, cafetería, programas y accesorios</small></span></label>
+            <label class="pill" data-kind="transporte"><input type="radio" name="categoria" value="Transportación"><span class="dot"></span><span>Transportación</span></label>
+          </div>
         </div>
 
         <div class="field">
@@ -573,6 +584,7 @@
       'Presupuesto disponible: ' + (t.presupuesto || '—'),
       'Oficina / Ubicación: ' + (t.oficina || '—'),
       'Tipo de solicitud: ' + t.tipo,
+      'Categoría: ' + t.categoria,
       '',
       'Materiales / servicios solicitados:'
     ];
@@ -611,9 +623,10 @@
     var presupuesto = fieldValue('presupuesto');
     var oficina = fieldValue('oficina');
     var tipo = fieldValue('tipo');
+    var categoria = fieldValue('categoria');
     var itemsResult = collectItems();
 
-    if (!solicitante || !autoriza || !contacto || !empresa || !cc || !insumo || !tipo || !itemsResult.valid || itemsResult.items.length === 0) {
+    if (!solicitante || !autoriza || !contacto || !empresa || !cc || !insumo || !tipo || !categoria || !itemsResult.valid || itemsResult.items.length === 0) {
       errorMsg.classList.add('show');
       return;
     }
@@ -633,7 +646,7 @@
       id: makeFolio(),
       fecha: new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }),
       solicitante: solicitante, autoriza: autoriza, contacto: contacto, empresa: empresa, cc: cc,
-      obra: obra, insumo: insumo, presupuesto: presupuesto, oficina: oficina, tipo: tipo, items: processedItems,
+      obra: obra, insumo: insumo, presupuesto: presupuesto, oficina: oficina, tipo: tipo, categoria: categoria, items: processedItems,
       estado: 'pendiente'
     };
 
@@ -648,7 +661,7 @@
     confirmSummary.innerHTML = '';
     [
       ['Solicita', req.solicitante], ['Autoriza', req.autoriza], ['Empresa', req.empresa],
-      ['Centro de costo', req.cc], ['Tipo', req.tipo],
+      ['Centro de costo', req.cc], ['Tipo', req.tipo], ['Categoría', req.categoria],
       ['Obra / Oficina', [req.obra, req.oficina].filter(Boolean).join(' · ') || '—'],
       ['Insumo a utilizar', req.insumo], ['Presupuesto disponible', req.presupuesto || '—'],
       ['Contacto', req.contacto]
