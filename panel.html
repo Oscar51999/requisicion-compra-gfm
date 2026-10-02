@@ -54,7 +54,7 @@
 
   main { max-width: 1080px; margin: 18px auto 0; }
 
-  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
   @media (max-width: 720px) { .stats { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 460px) { .stats { grid-template-columns: repeat(2, 1fr); } }
   .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
@@ -63,7 +63,6 @@
   .stat[data-tone="pendiente"] .n { color: var(--warn); }
   .stat[data-tone="autorizada"] .n { color: var(--turquoise-deep); }
   .stat[data-tone="rechazada"] .n { color: var(--critical); }
-  .stat[data-tone="comprada"] .n { color: var(--success); }
 
   .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
   .toolbar input[type="search"], .toolbar select {
@@ -123,7 +122,6 @@
   select.estado[data-v="pendiente"] { color: var(--warn); background: var(--warn-bg); }
   select.estado[data-v="autorizada"] { color: var(--turquoise-deep); background: color-mix(in srgb, var(--turquoise) 16%, var(--surface)); }
   select.estado[data-v="rechazada"] { color: var(--critical); background: var(--critical-bg); }
-  select.estado[data-v="comprada"] { color: var(--success); background: var(--success-bg); }
   .req-time { font-size: 11.5px; color: var(--ink-soft); }
 
   .empty, .locked { text-align: center; padding: 48px 20px; color: var(--ink-soft); font-size: 14px; }
@@ -209,7 +207,6 @@
     <div class="stat" data-tone="pendiente"><div class="n" id="stat-pendiente">–</div><div class="l">Pendientes</div></div>
     <div class="stat" data-tone="autorizada"><div class="n" id="stat-autorizada">–</div><div class="l">Autorizadas</div></div>
     <div class="stat" data-tone="rechazada"><div class="n" id="stat-rechazada">–</div><div class="l">Rechazadas</div></div>
-    <div class="stat" data-tone="comprada"><div class="n" id="stat-comprada">–</div><div class="l">Compradas</div></div>
     <div class="stat"><div class="n" id="stat-total">–</div><div class="l">Total</div></div>
   </div>
 
@@ -220,7 +217,6 @@
       <option value="pendiente">Pendiente</option>
       <option value="autorizada">Autorizada</option>
       <option value="rechazada">Rechazada</option>
-      <option value="comprada">Comprada</option>
     </select>
     <select id="filter-tipo">
       <option value="">Normal y extraordinaria</option>
@@ -284,7 +280,6 @@
             <option value="pendiente">Pendiente</option>
             <option value="autorizada">Autorizada</option>
             <option value="rechazada">Rechazada</option>
-            <option value="comprada">Comprada</option>
           </select>
         </div>
       </div>
@@ -435,7 +430,6 @@
     document.getElementById('stat-pendiente').textContent = counts.pendiente;
     document.getElementById('stat-autorizada').textContent = counts.autorizada;
     document.getElementById('stat-rechazada').textContent = counts.rechazada;
-    document.getElementById('stat-comprada').textContent = counts.comprada;
     document.getElementById('stat-total').textContent = reqs.length;
   }
 
@@ -465,7 +459,7 @@
     }
     var pageWidth = doc.internal.pageSize.getWidth();
     var pageHeight = doc.internal.pageSize.getHeight();
-    var navy = [35, 64, 103];
+    var navy = [249, 178, 51];
     var ink = [29, 29, 27];
     var inkSoft = [107, 98, 96];
 
@@ -495,7 +489,7 @@
     y += 16;
     doc.text('Total de requisiciones: ' + allReqs.length, 40, y);
     y += 14;
-    doc.text('Pendientes: ' + counts2.pendiente + '   Autorizadas: ' + counts2.autorizada + '   Rechazadas: ' + counts2.rechazada + '   Compradas: ' + counts2.comprada, 40, y);
+    doc.text('Pendientes: ' + counts2.pendiente + '   Autorizadas: ' + counts2.autorizada + '   Rechazadas: ' + counts2.rechazada, 40, y);
 
     var rows = [];
     allReqs.forEach(function (r) {
@@ -520,7 +514,7 @@
       body: rows,
       styles: { font: 'helvetica', fontSize: 8, cellPadding: 4, textColor: ink, overflow: 'linebreak', valign: 'top' },
       headStyles: { fillColor: navy, textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [244, 238, 227] },
+      alternateRowStyles: { fillColor: [222, 197, 150] },
       columnStyles: {
         0: { cellWidth: 62 },
         1: { cellWidth: 68 },
@@ -705,7 +699,7 @@
 
     var estadoSel = document.createElement('select');
     estadoSel.className = 'estado';
-    ['pendiente', 'autorizada', 'rechazada', 'comprada'].forEach(function (v) {
+    ['pendiente', 'autorizada', 'rechazada'].forEach(function (v) {
       var opt = document.createElement('option');
       opt.value = v; opt.textContent = ESTADO_LABEL[v];
       if (v === r.estado) opt.selected = true;
