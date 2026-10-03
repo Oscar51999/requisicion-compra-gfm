@@ -143,6 +143,21 @@
   }
   select { cursor: pointer; }
   select:disabled { cursor: default; opacity: .85; }
+  #f-moneda {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: auto;
+    border: none;
+    background: transparent;
+    padding: 11px 0 11px 4px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--ink-soft);
+    cursor: default;
+    opacity: 1;
+  }
+  #f-moneda:focus { outline: none; border-color: transparent; box-shadow: none; }
   input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--turquoise);
