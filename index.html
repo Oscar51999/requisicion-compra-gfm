@@ -725,6 +725,28 @@
       estado: 'pendiente'
     };
 
+    var usedServerFolio = false;
+    if (APPS_SCRIPT_URL) {
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Asignando folio...'; }
+      try {
+        var folioRes = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(req)
+        });
+        if (!folioRes.ok) throw new Error('bad status');
+        var folioJson = await folioRes.json();
+        if (folioJson && folioJson.id) {
+          req.id = folioJson.id;
+          usedServerFolio = true;
+        }
+      } catch (err) {
+        usedServerFolio = false;
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitBtnOriginalText; }
+      }
+    }
+
     lastMailto = buildMailto(req);
     saveLocalHistory(req);
 
@@ -758,20 +780,9 @@
     form.hidden = true;
     confirmView.hidden = false;
 
-    if (APPS_SCRIPT_URL) {
-      fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(req)
-      }).then(function (res) {
-        if (!res.ok) throw new Error('bad status');
-        confirmText.textContent = 'Tu requisición ya llegó a Administración automáticamente y quedó registrada en el panel.';
-        resendBtn.hidden = true;
-      }).catch(function () {
-        confirmText.textContent = 'Se abrió tu programa de correo con la requisición ya redactada. Solo confirma el envío ahí para que llegue a Administración. Si no se abrió nada, usa el botón de abajo.';
-        resendBtn.hidden = false;
-        window.location.href = lastMailto;
-      });
+    if (usedServerFolio) {
+      confirmText.textContent = 'Tu requisición ya llegó a Administración automáticamente y quedó registrada en el panel.';
+      resendBtn.hidden = true;
     } else {
       confirmText.textContent = 'Se abrió tu programa de correo con la requisición ya redactada. Solo confirma el envío ahí para que llegue a Administración. Si no se abrió nada, usa el botón de abajo.';
       resendBtn.hidden = false;
