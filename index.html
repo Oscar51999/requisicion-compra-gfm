@@ -149,6 +149,10 @@
   }
   textarea { min-height: 64px; resize: vertical; }
 
+  .insumo-row { display: grid; grid-template-columns: 90px 1fr; gap: 8px; }
+  .presupuesto-row { display: grid; grid-template-columns: 1fr 88px; gap: 8px; }
+  @media (max-width: 420px) { .insumo-row, .presupuesto-row { grid-template-columns: 1fr; } }
+
   .pill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   @media (max-width: 480px) { .pill-grid { grid-template-columns: 1fr; } }
   .pill-grid.pill-grid-3 { grid-template-columns: repeat(3, 1fr); }
@@ -339,12 +343,26 @@
 
         <div class="row2">
           <div class="field">
-            <label for="f-insumo">Insumo a utilizar</label>
-            <input type="text" id="f-insumo" name="insumo" placeholder="Ej. Material eléctrico" required>
+            <label for="f-insumo-cantidad">Insumo a utilizar</label>
+            <div class="insumo-row">
+              <input type="number" id="f-insumo-cantidad" name="insumo_cantidad" min="1" step="1" placeholder="Cant." required>
+              <select id="f-insumo-tipo" name="insumo_tipo" required>
+                <option value="" disabled selected>¿Qué insumo?</option>
+                <option value="Activo Fijo">Activo Fijo</option>
+                <option value="Insumos de Oficina">Insumos de Oficina</option>
+                <option value="Transportación">Transportación</option>
+              </select>
+            </div>
           </div>
           <div class="field">
             <label for="f-presupuesto">Presupuesto disponible</label>
-            <input type="text" id="f-presupuesto" name="presupuesto" placeholder="Ej. $5,000.00">
+            <div class="presupuesto-row">
+              <input type="text" id="f-presupuesto" name="presupuesto" placeholder="Ej. 5,000.00">
+              <select id="f-moneda" name="moneda">
+                <option value="MXN" selected>MXN</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -581,7 +599,7 @@
       'Centro de costo (CC): ' + t.cc,
       'Obra: ' + (t.obra || '—'),
       'Insumo a utilizar: ' + t.insumo,
-      'Presupuesto disponible: ' + (t.presupuesto || '—'),
+      'Presupuesto disponible: ' + (t.presupuesto ? (t.presupuesto + ' ' + t.moneda) : '—'),
       'Oficina / Ubicación: ' + (t.oficina || '—'),
       'Tipo de solicitud: ' + t.tipo,
       'Categoría: ' + t.categoria,
@@ -619,8 +637,11 @@
     var empresa = fieldValue('empresa');
     var cc = fieldValue('cc');
     var obra = fieldValue('obra');
-    var insumo = fieldValue('insumo');
+    var insumoCantidad = fieldValue('insumo_cantidad');
+    var insumoTipo = fieldValue('insumo_tipo');
+    var insumo = (insumoCantidad && insumoTipo) ? (insumoCantidad + ' ' + insumoTipo) : '';
     var presupuesto = fieldValue('presupuesto');
+    var moneda = fieldValue('moneda');
     var oficina = fieldValue('oficina');
     var tipo = fieldValue('tipo');
     var categoria = fieldValue('categoria');
@@ -646,7 +667,7 @@
       id: makeFolio(),
       fecha: new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }),
       solicitante: solicitante, autoriza: autoriza, contacto: contacto, empresa: empresa, cc: cc,
-      obra: obra, insumo: insumo, presupuesto: presupuesto, oficina: oficina, tipo: tipo, categoria: categoria, items: processedItems,
+      obra: obra, insumo: insumo, insumoCantidad: insumoCantidad, insumoTipo: insumoTipo, presupuesto: presupuesto, moneda: moneda, oficina: oficina, tipo: tipo, categoria: categoria, items: processedItems,
       estado: 'pendiente'
     };
 
@@ -663,7 +684,7 @@
       ['Solicita', req.solicitante], ['Autoriza', req.autoriza], ['Empresa', req.empresa],
       ['Centro de costo', req.cc], ['Tipo', req.tipo], ['Categoría', req.categoria],
       ['Obra / Oficina', [req.obra, req.oficina].filter(Boolean).join(' · ') || '—'],
-      ['Insumo a utilizar', req.insumo], ['Presupuesto disponible', req.presupuesto || '—'],
+      ['Insumo a utilizar', req.insumo], ['Presupuesto disponible', req.presupuesto ? (req.presupuesto + ' ' + req.moneda) : '—'],
       ['Contacto', req.contacto]
     ].forEach(function (pair) {
       var row = document.createElement('div');
