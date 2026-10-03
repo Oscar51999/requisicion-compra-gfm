@@ -441,6 +441,7 @@
   var addItemBtn = document.getElementById('add-item-btn');
   var insumoCantidadInput = document.getElementById('f-insumo-cantidad');
   var insumoItemsWrap = document.getElementById('insumo-items');
+  var presupuestoInput = document.getElementById('f-presupuesto');
 
   var DEST_EMAILS = ['oscar.cota.gfm@gmail.com', 'aux.adm.gfm@gmail.com'];
   // Pega aquí la URL de tu Web App de Google Apps Script (Code.gs) cuando la despliegues.
@@ -470,6 +471,26 @@
 
   insumoCantidadInput.addEventListener('input', function () {
     renderInsumoItems(parseInt(insumoCantidadInput.value, 10));
+  });
+
+  function formatPresupuesto(raw) {
+    var digits = raw.replace(/[^\d.]/g, '');
+    var firstDot = digits.indexOf('.');
+    if (firstDot !== -1) {
+      digits = digits.slice(0, firstDot + 1) + digits.slice(firstDot + 1).replace(/\./g, '');
+    }
+    if (!digits || digits === '.') return '';
+    var parts = digits.split('.');
+    var intPart = parts[0].replace(/^0+(?=\d)/, '');
+    if (!intPart) intPart = '0';
+    var formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    var result = '$' + formattedInt;
+    if (parts.length > 1) result += '.' + parts[1].slice(0, 2);
+    return result;
+  }
+
+  presupuestoInput.addEventListener('input', function () {
+    presupuestoInput.value = formatPresupuesto(presupuestoInput.value);
   });
 
   function addItemRow(prefill) {
