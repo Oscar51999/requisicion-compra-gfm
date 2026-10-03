@@ -142,6 +142,7 @@
     transition: border-color .15s, box-shadow .15s;
   }
   select { cursor: pointer; }
+  select:disabled { cursor: default; opacity: .85; }
   input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--turquoise);
@@ -149,9 +150,9 @@
   }
   textarea { min-height: 64px; resize: vertical; }
 
-  .insumo-row { display: grid; grid-template-columns: 90px 1fr; gap: 8px; }
   .presupuesto-row { display: grid; grid-template-columns: 1fr 88px; gap: 8px; }
-  @media (max-width: 420px) { .insumo-row, .presupuesto-row { grid-template-columns: 1fr; } }
+  @media (max-width: 420px) { .presupuesto-row { grid-template-columns: 1fr; } }
+  .insumo-items { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 
   .pill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   @media (max-width: 480px) { .pill-grid { grid-template-columns: 1fr; } }
@@ -344,23 +345,15 @@
         <div class="row2">
           <div class="field">
             <label for="f-insumo-cantidad">Insumo a utilizar</label>
-            <div class="insumo-row">
-              <input type="number" id="f-insumo-cantidad" name="insumo_cantidad" min="1" step="1" placeholder="Cant." required>
-              <select id="f-insumo-tipo" name="insumo_tipo" required>
-                <option value="" disabled selected>¿Qué insumo?</option>
-                <option value="Activo Fijo">Activo Fijo</option>
-                <option value="Insumos de Oficina">Insumos de Oficina</option>
-                <option value="Transportación">Transportación</option>
-              </select>
-            </div>
+            <input type="number" id="f-insumo-cantidad" name="insumo_cantidad" min="1" max="30" step="1" placeholder="Insumos" required>
+            <div class="insumo-items" id="insumo-items"></div>
           </div>
           <div class="field">
             <label for="f-presupuesto">Presupuesto disponible</label>
             <div class="presupuesto-row">
               <input type="text" id="f-presupuesto" name="presupuesto" placeholder="Ej. 5,000.00">
-              <select id="f-moneda" name="moneda">
+              <select id="f-moneda" name="moneda" disabled>
                 <option value="MXN" selected>MXN</option>
-                <option value="USD">USD</option>
               </select>
             </div>
           </div>
@@ -431,6 +424,8 @@
   var resetLink = document.getElementById('reset-link');
   var itemsWrap = document.getElementById('items-wrap');
   var addItemBtn = document.getElementById('add-item-btn');
+  var insumoCantidadInput = document.getElementById('f-insumo-cantidad');
+  var insumoItemsWrap = document.getElementById('insumo-items');
 
   var DEST_EMAILS = ['oscar.cota.gfm@gmail.com', 'aux.adm.gfm@gmail.com'];
   // Pega aquí la URL de tu Web App de Google Apps Script (Code.gs) cuando la despliegues.
@@ -440,6 +435,27 @@
   var itemCount = 0;
 
   function uid() { return 'r' + (++itemCount) + '_' + Math.random().toString(36).slice(2, 6); }
+
+  function renderInsumoItems(n) {
+    n = Math.max(0, Math.min(30, n || 0));
+    var current = insumoItemsWrap.querySelectorAll('.f-insumo-item');
+    while (current.length > n) {
+      insumoItemsWrap.removeChild(insumoItemsWrap.lastElementChild);
+      current = insumoItemsWrap.querySelectorAll('.f-insumo-item');
+    }
+    for (var i = current.length; i < n; i++) {
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'f-insumo-item';
+      input.name = 'insumo_item_' + (i + 1);
+      input.placeholder = 'Insumo #' + (i + 1) + ' — ¿qué es?';
+      insumoItemsWrap.appendChild(input);
+    }
+  }
+
+  insumoCantidadInput.addEventListener('input', function () {
+    renderInsumoItems(parseInt(insumoCantidadInput.value, 10));
+  });
 
   function addItemRow(prefill) {
     prefill = prefill || {};
@@ -638,8 +654,10 @@
     var cc = fieldValue('cc');
     var obra = fieldValue('obra');
     var insumoCantidad = fieldValue('insumo_cantidad');
-    var insumoTipo = fieldValue('insumo_tipo');
-    var insumo = (insumoCantidad && insumoTipo) ? (insumoCantidad + ' ' + insumoTipo) : '';
+    var insumoItemEls = Array.prototype.slice.call(insumoItemsWrap.querySelectorAll('.f-insumo-item'));
+    var insumoItems = insumoItemEls.map(function (el) { return el.value.trim(); });
+    var insumoItemsValid = !!insumoCantidad && insumoItems.length === parseInt(insumoCantidad, 10) && insumoItems.every(Boolean);
+    var insumo = insumoItems.filter(Boolean).join(', ');
     var presupuesto = fieldValue('presupuesto');
     var moneda = fieldValue('moneda');
     var oficina = fieldValue('oficina');
@@ -647,7 +665,7 @@
     var categoria = fieldValue('categoria');
     var itemsResult = collectItems();
 
-    if (!solicitante || !autoriza || !contacto || !empresa || !cc || !insumo || !tipo || !categoria || !itemsResult.valid || itemsResult.items.length === 0) {
+    if (!solicitante || !autoriza || !contacto || !empresa || !cc || !insumo || !insumoItemsValid || !tipo || !categoria || !itemsResult.valid || itemsResult.items.length === 0) {
       errorMsg.classList.add('show');
       return;
     }
@@ -667,7 +685,7 @@
       id: makeFolio(),
       fecha: new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }),
       solicitante: solicitante, autoriza: autoriza, contacto: contacto, empresa: empresa, cc: cc,
-      obra: obra, insumo: insumo, insumoCantidad: insumoCantidad, insumoTipo: insumoTipo, presupuesto: presupuesto, moneda: moneda, oficina: oficina, tipo: tipo, categoria: categoria, items: processedItems,
+      obra: obra, insumo: insumo, insumoCantidad: insumoCantidad, insumoItems: insumoItems, presupuesto: presupuesto, moneda: moneda, oficina: oficina, tipo: tipo, categoria: categoria, items: processedItems,
       estado: 'pendiente'
     };
 
@@ -733,6 +751,7 @@
     itemsWrap.innerHTML = '';
     itemCount = 0;
     addItemRow();
+    insumoItemsWrap.innerHTML = '';
     errorMsg.classList.remove('show');
     confirmView.hidden = true;
     form.hidden = false;
