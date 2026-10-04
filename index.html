@@ -190,6 +190,26 @@
   .pill:has(input:focus-visible) { box-shadow: 0 0 0 3px color-mix(in srgb, var(--turquoise) 30%, transparent); }
 
   .hint { font-size: 12px; color: var(--ink-soft); margin-top: 6px; }
+
+  /* ayuda de categorías */
+  .label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .label-row label { margin-bottom: 0; }
+  .info-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; padding: 0; border-radius: 50%;
+    border: 1.5px solid var(--navy); background: transparent; color: var(--navy);
+    font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700; line-height: 1;
+    cursor: pointer; transition: background .15s, color .15s;
+  }
+  .info-btn:hover, .info-btn[aria-expanded="true"] { background: var(--navy); color: var(--surface); }
+  .info-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--turquoise) 30%, transparent); }
+  .info-panel { border: 1px solid var(--border); border-radius: 8px; background: var(--paper); margin-bottom: 10px; overflow: hidden; }
+  .info-panel table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .info-panel th, .info-panel td { text-align: left; vertical-align: top; padding: 9px 12px; border-top: 1px solid var(--border); }
+  .info-panel tr:first-child th, .info-panel tr:first-child td { border-top: none; }
+  .info-panel th { font-weight: 600; color: var(--ink); width: 34%; }
+  .info-panel td { color: var(--ink-soft); }
+  @media (max-width: 480px) { .info-panel th { width: 38%; } }
   .error-msg { font-size: 12.5px; color: var(--critical); margin-top: 12px; display: none; }
   .error-msg.show { display: block; }
 
@@ -380,11 +400,23 @@
         </div>
 
         <div class="field">
-          <label>Categoría</label>
-          <div class="pill-grid pill-grid-3" role="radiogroup" aria-label="Categoría">
-            <label class="pill" data-kind="activo-fijo"><input type="radio" name="categoria" value="Activo Fijo"><span class="dot"></span><span>Activo fijo<small>Mobiliario, equipo o bien duradero</small></span></label>
-            <label class="pill" data-kind="oficina"><input type="radio" name="categoria" value="Insumos de Oficina"><span class="dot"></span><span>Insumos de oficina<small>Papelería, cafetería, programas y accesorios</small></span></label>
-            <label class="pill" data-kind="transporte"><input type="radio" name="categoria" value="Transportación"><span class="dot"></span><span>Transportación</span></label>
+          <div class="label-row">
+            <label id="categoria-label">Categoría</label>
+            <button type="button" class="info-btn" id="cat-info-btn" aria-expanded="false" aria-controls="cat-info" aria-label="¿Qué incluye cada categoría?" title="¿Qué incluye cada categoría?">i</button>
+          </div>
+          <div class="info-panel" id="cat-info" hidden>
+            <table>
+              <tbody>
+                <tr><th scope="row">Activos fijos</th><td>Equipo de cómputo, mobiliario de oficina</td></tr>
+                <tr><th scope="row">Insumos de oficina</th><td>Papelería, insumos de cafetería y limpieza, programas y accesorios, equipos menores, herramientas y útiles</td></tr>
+                <tr><th scope="row">Transportación</th><td>Vuelos, autobús, barco</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pill-grid pill-grid-3" role="radiogroup" aria-labelledby="categoria-label">
+            <label class="pill" data-kind="activo-fijo"><input type="radio" name="categoria" value="Activo Fijo"><span class="dot"></span><span>Activo fijo<small>Equipo de cómputo, mobiliario de oficina</small></span></label>
+            <label class="pill" data-kind="oficina"><input type="radio" name="categoria" value="Insumos de Oficina"><span class="dot"></span><span>Insumos de oficina<small>Papelería, cafetería y limpieza, programas, herramientas y útiles</small></span></label>
+            <label class="pill" data-kind="transporte"><input type="radio" name="categoria" value="Transportación"><span class="dot"></span><span>Transportación<small>Vuelos, autobús, barco</small></span></label>
           </div>
         </div>
 
@@ -437,6 +469,16 @@
   var confirmText = document.getElementById('confirm-text');
   var resendBtn = document.getElementById('resend-btn');
   var resetLink = document.getElementById('reset-link');
+  var catInfoBtn = document.getElementById('cat-info-btn');
+  var catInfoPanel = document.getElementById('cat-info');
+  function setCatInfo(open) {
+    catInfoPanel.hidden = !open;
+    catInfoBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  catInfoBtn.addEventListener('click', function () { setCatInfo(catInfoPanel.hidden); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !catInfoPanel.hidden) { setCatInfo(false); catInfoBtn.focus(); }
+  });
   var itemsWrap = document.getElementById('items-wrap');
   var addItemBtn = document.getElementById('add-item-btn');
   var insumoCantidadInput = document.getElementById('f-insumo-cantidad');
