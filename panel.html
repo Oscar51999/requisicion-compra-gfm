@@ -219,8 +219,8 @@
       <option value="rechazada">Rechazada</option>
     </select>
     <select id="filter-tipo">
-      <option value="">Normal y extraordinaria</option>
-      <option value="Normal">Solo normal</option>
+      <option value="">Ordinaria y extraordinaria</option>
+      <option value="Ordinaria">Solo ordinaria</option>
       <option value="Extraordinaria">Solo extraordinaria</option>
     </select>
     <span class="spacer"></span>
@@ -270,7 +270,7 @@
         <div class="field">
           <label>Tipo de solicitud</label>
           <select name="tipo">
-            <option value="Normal">Normal</option>
+            <option value="Ordinaria">Ordinaria</option>
             <option value="Extraordinaria">Extraordinaria</option>
           </select>
         </div>
@@ -502,7 +502,7 @@
         r.solicitante || '',
         r.empresa || '',
         r.cc || '',
-        r.tipo || '',
+        (r.tipo === 'Normal' ? 'Ordinaria' : r.tipo) || '',
         ESTADO_LABEL[r.estado] || r.estado || '',
         itemsText.slice(0, 200)
       ]);
@@ -553,7 +553,7 @@
       if (hay.indexOf(q) === -1) return false;
     }
     if (filterEstado.value && r.estado !== filterEstado.value) return false;
-    if (filterTipo.value && r.tipo !== filterTipo.value) return false;
+    if (filterTipo.value && (r.tipo === 'Normal' ? 'Ordinaria' : r.tipo) !== filterTipo.value) return false;
     return true;
   }
 
