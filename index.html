@@ -377,6 +377,27 @@
           </div>
         </div>
 
+        <div class="field">
+          <div class="label-row">
+            <label id="categoria-label">Categoría</label>
+            <button type="button" class="info-btn" id="cat-info-btn" aria-expanded="false" aria-controls="cat-info" aria-label="¿Qué incluye cada categoría?" title="¿Qué incluye cada categoría?">i</button>
+          </div>
+          <div class="info-panel" id="cat-info" hidden>
+            <table>
+              <tbody>
+                <tr><th scope="row">Activos fijos</th><td>Equipo de cómputo, mobiliario de oficina</td></tr>
+                <tr><th scope="row">Insumos de oficina</th><td>Papelería, insumos de cafetería y limpieza, programas y accesorios, equipos menores, herramientas y útiles</td></tr>
+                <tr><th scope="row">Transportación</th><td>Vuelos, autobús, barco</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pill-grid pill-grid-3" role="radiogroup" aria-labelledby="categoria-label">
+            <label class="pill" data-kind="activo-fijo"><input type="radio" name="categoria" value="Activo Fijo"><span class="dot"></span><span>Activo fijo<small>Equipo de cómputo, mobiliario de oficina</small></span></label>
+            <label class="pill" data-kind="oficina"><input type="radio" name="categoria" value="Insumos de Oficina"><span class="dot"></span><span>Insumos de oficina<small>Papelería, cafetería y limpieza, programas, herramientas y útiles</small></span></label>
+            <label class="pill" data-kind="transporte"><input type="radio" name="categoria" value="Transportación"><span class="dot"></span><span>Transportación<small>Vuelos, autobús, barco</small></span></label>
+          </div>
+        </div>
+
         <div class="row2">
           <div class="field">
             <label for="f-insumo-cantidad">Insumo a utilizar</label>
@@ -397,27 +418,6 @@
         <div class="field">
           <label for="f-oficina">Oficina / Ubicación <span class="opt">(opcional)</span></label>
           <input type="text" id="f-oficina" name="oficina" placeholder="Ej. Oficina Félix Ortega">
-        </div>
-
-        <div class="field">
-          <div class="label-row">
-            <label id="categoria-label">Categoría</label>
-            <button type="button" class="info-btn" id="cat-info-btn" aria-expanded="false" aria-controls="cat-info" aria-label="¿Qué incluye cada categoría?" title="¿Qué incluye cada categoría?">i</button>
-          </div>
-          <div class="info-panel" id="cat-info" hidden>
-            <table>
-              <tbody>
-                <tr><th scope="row">Activos fijos</th><td>Equipo de cómputo, mobiliario de oficina</td></tr>
-                <tr><th scope="row">Insumos de oficina</th><td>Papelería, insumos de cafetería y limpieza, programas y accesorios, equipos menores, herramientas y útiles</td></tr>
-                <tr><th scope="row">Transportación</th><td>Vuelos, autobús, barco</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="pill-grid pill-grid-3" role="radiogroup" aria-labelledby="categoria-label">
-            <label class="pill" data-kind="activo-fijo"><input type="radio" name="categoria" value="Activo Fijo"><span class="dot"></span><span>Activo fijo<small>Equipo de cómputo, mobiliario de oficina</small></span></label>
-            <label class="pill" data-kind="oficina"><input type="radio" name="categoria" value="Insumos de Oficina"><span class="dot"></span><span>Insumos de oficina<small>Papelería, cafetería y limpieza, programas, herramientas y útiles</small></span></label>
-            <label class="pill" data-kind="transporte"><input type="radio" name="categoria" value="Transportación"><span class="dot"></span><span>Transportación<small>Vuelos, autobús, barco</small></span></label>
-          </div>
         </div>
 
         <div class="field">
