@@ -446,6 +446,17 @@
       alert('No hay requisiciones todavía para incluir en el reporte.');
       return;
     }
+    // El reporte respeta los filtros activos (búsqueda, estado y tipo) y el mismo orden de la lista.
+    var reportReqs = allReqs.filter(matchesFilters).sort(function (a, b) { return (b.receivedAt || 0) - (a.receivedAt || 0); });
+    if (!reportReqs.length) {
+      alert('Ninguna requisición coincide con los filtros seleccionados. Ajusta los filtros para generar el reporte.');
+      return;
+    }
+    var activeFilters = [];
+    var qText = searchInput.value.trim();
+    if (qText) activeFilters.push('Búsqueda: "' + qText + '"');
+    if (filterEstado.value) activeFilters.push('Estado: ' + filterEstado.options[filterEstado.selectedIndex].text);
+    if (filterTipo.value) activeFilters.push('Tipo: ' + filterTipo.options[filterTipo.selectedIndex].text);
     if (!window.jspdf || !window.jspdf.jsPDF) {
       alert('No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo.');
       return;
@@ -476,7 +487,7 @@
     doc.text('Reporte generado el ' + new Date().toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' }), 40, 50);
 
     var counts2 = { pendiente: 0, autorizada: 0, rechazada: 0, comprada: 0 };
-    allReqs.forEach(function (r) { if (counts2.hasOwnProperty(r.estado)) counts2[r.estado]++; });
+    reportReqs.forEach(function (r) { if (counts2.hasOwnProperty(r.estado)) counts2[r.estado]++; });
 
     var y = 96;
     doc.setFont('helvetica', 'bold');
@@ -487,12 +498,17 @@
     doc.setFontSize(10);
     doc.setTextColor(inkSoft[0], inkSoft[1], inkSoft[2]);
     y += 16;
-    doc.text('Total de requisiciones: ' + allReqs.length, 40, y);
+    doc.text('Total de requisiciones: ' + reportReqs.length + (activeFilters.length ? ' de ' + allReqs.length + ' (filtradas)' : ''), 40, y);
     y += 14;
     doc.text('Pendientes: ' + counts2.pendiente + '   Autorizadas: ' + counts2.autorizada + '   Rechazadas: ' + counts2.rechazada, 40, y);
+    y += 14;
+    var filtersLine = 'Filtros aplicados: ' + (activeFilters.length ? activeFilters.join('  ·  ') : 'ninguno (todas las requisiciones)');
+    var filtersLines = doc.splitTextToSize(filtersLine, pageWidth - 80);
+    doc.text(filtersLines, 40, y);
+    y += (filtersLines.length - 1) * 12;
 
     var rows = [];
-    allReqs.forEach(function (r) {
+    reportReqs.forEach(function (r) {
       var itemsText = (r.items || []).map(function (it) {
         return (it.cantidad || '') + ' ' + (it.unidad || '') + ' ' + (it.descripcion || '');
       }).join(' | ');
@@ -521,7 +537,7 @@
         2: { cellWidth: 64 },
         3: { cellWidth: 70 },
         4: { cellWidth: 46 },
-        5: { cellWidth: 42 },
+        5: { cellWidth: 60 },
         6: { cellWidth: 48 },
         7: { cellWidth: 'auto' }
       },
