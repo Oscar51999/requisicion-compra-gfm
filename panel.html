@@ -264,7 +264,7 @@
       </div>
       <div class="row2">
         <div class="field"><label>Insumo a utilizar</label><input type="text" name="insumo" required></div>
-        <div class="field"><label>Presupuesto disponible</label><input type="text" name="presupuesto"></div>
+        <div class="field"><label>Presupuesto disponible total</label><input type="text" name="presupuesto"></div>
       </div>
       <div class="field"><label>Oficina / Ubicación</label><input type="text" name="oficina"></div>
       <div class="row2">
@@ -314,8 +314,9 @@
     </div>
     <div class="row2">
       <div class="field"><label>Insumo a utilizar</label><div id="detail-insumo" class="detail-value"></div></div>
-      <div class="field"><label>Presupuesto disponible</label><div id="detail-presupuesto" class="detail-value"></div></div>
+      <div class="field"><label>Presupuesto disponible total</label><div id="detail-presupuesto" class="detail-value"></div></div>
     </div>
+    <div id="detail-extra"></div>
     <div class="row2">
       <div class="field"><label>Oficina / Ubicación</label><div id="detail-oficina" class="detail-value"></div></div>
       <div class="field"><label>Recibido</label><div id="detail-fecha" class="detail-value"></div></div>
@@ -594,6 +595,40 @@
 
   function fmtVal(v) { return (v === undefined || v === null || v === '') ? '—' : v; }
 
+  function fmtFechaIso(s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); return m ? (m[3] + '/' + m[2] + '/' + m[1]) : (s || ''); }
+  function renderDetailExtra(r) {
+    var box = document.getElementById('detail-extra');
+    box.textContent = '';
+    var ex = r.extra || {};
+    function bloque(titulo, pares) {
+      if (!pares.length) return;
+      var wrap = document.createElement('div'); wrap.className = 'field';
+      var lab = document.createElement('label'); lab.textContent = titulo; wrap.appendChild(lab);
+      pares.forEach(function (p) {
+        var d = document.createElement('div'); d.className = 'detail-value';
+        if (p.url) {
+          d.appendChild(document.createTextNode(p.k + ': '));
+          var a = document.createElement('a'); a.href = p.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = p.v; d.appendChild(a);
+        } else { d.textContent = p.k + ': ' + p.v; }
+        wrap.appendChild(d);
+      });
+      box.appendChild(wrap);
+    }
+    if (ex.categoria) bloque('Categor\u00eda', [{ k: 'Tipo', v: ex.categoria }]);
+    var porInsumo = (ex.insumos || []).filter(function (x) { return x && x.presupuesto; }).map(function (x) { return { k: x.insumo, v: x.presupuesto + ' ' + (ex.moneda || 'MXN') }; });
+    bloque('Presupuesto por insumo', porInsumo);
+    var t = ex.transporte;
+    if (t) {
+      var pares = [
+        { k: 'Ruta', v: t.ruta || '\u2014' }, { k: 'Fecha de viaje', v: fmtFechaIso(t.fechaViaje) || '\u2014' },
+        { k: 'Horario sugerido', v: t.horario || '\u2014' }, { k: 'Pasajero', v: t.pasajero || '\u2014' },
+        { k: 'Fecha de nacimiento', v: fmtFechaIso(t.fechaNacimiento) || '\u2014' }, { k: 'Equipaje', v: t.equipaje || '\u2014' }
+      ];
+      if (t.itinerarioUrl && /^https:\/\//.test(t.itinerarioUrl)) pares.push({ k: 'Itinerario sugerido', v: 'Ver archivo', url: t.itinerarioUrl });
+      bloque('Datos del viaje', pares);
+    }
+  }
+
   function openDetail(r) {
     detailTitle.textContent = r.id;
     detailTags.textContent = '';
@@ -615,6 +650,7 @@
     detailObra.textContent = fmtVal(r.obra);
     detailInsumo.textContent = fmtVal(r.insumo);
     detailPresupuesto.textContent = fmtVal(r.presupuesto);
+    renderDetailExtra(r);
     detailOficina.textContent = fmtVal(r.oficina);
     detailFecha.textContent = r.fecha || fmtTime(r.receivedAt) || '—';
 
