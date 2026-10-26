@@ -130,7 +130,7 @@
   label { display: block; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
   label .opt { font-weight: 400; color: var(--ink-soft); text-transform: none; }
 
-  input[type="text"], input[type="number"], input[type="email"], textarea, select {
+  input[type="text"], input[type="number"], input[type="email"], input[type="date"], textarea, select {
     width: 100%;
     font: inherit;
     font-size: 14px;
@@ -177,6 +177,20 @@
   .insumo-list li.vacio:hover { background: transparent; }
   .f-insumo-item.invalido { border-color: #B3261E; }
   .insumo-hint { font-size: 12px; color: var(--ink-soft); margin-top: 6px; }
+  .insumo-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+  .insumo-row .insumo-combo { flex: 1 1 220px; min-width: 0; }
+  .insumo-presu { flex: 1 1 170px; display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .insumo-presu input { flex: 1; min-width: 0; }
+  .insumo-presu span { font-size: 13px; color: var(--ink-soft); }
+  .insumo-resumen { font-size: 12.5px; color: var(--ink-soft); margin-top: 8px; }
+  .insumo-resumen.excede { color: #B3261E; font-weight: 600; }
+  .transporte-box { margin: 0 0 18px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: color-mix(in srgb, var(--turquoise) 7%, var(--surface)); }
+  .transporte-box h3 { margin: 0 0 2px; font-size: 14px; color: var(--ink); }
+  .transporte-box .hint { margin: 0 0 12px; }
+  .transporte-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .transporte-grid .field { margin-bottom: 0; }
+  .transporte-grid .span2 { grid-column: 1 / -1; }
+  @media (max-width: 560px) { .transporte-grid { grid-template-columns: 1fr; } }
 
   .pill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   @media (max-width: 480px) { .pill-grid { grid-template-columns: 1fr; } }
@@ -408,14 +422,29 @@
           </div>
         </div>
 
+        <div class="transporte-box" id="transporte-box" hidden>
+          <h3>Datos del viaje</h3>
+          <p class="hint">Captura la información de la transportación que solicitas.</p>
+          <div class="transporte-grid">
+            <div class="field span2"><label for="t-ruta">Ruta</label><input type="text" id="t-ruta" placeholder="Ej. Tijuana → La Paz" autocomplete="off"></div>
+            <div class="field"><label for="t-fecha">Fecha de viaje</label><input type="date" id="t-fecha"></div>
+            <div class="field"><label for="t-horario">Horario sugerido</label><input type="text" id="t-horario" placeholder="Ej. Por la mañana, antes de las 10:00" autocomplete="off"></div>
+            <div class="field span2"><label for="t-pasajero">Nombre del pasajero</label><input type="text" id="t-pasajero" placeholder="Como aparece en su identificación oficial" autocomplete="off"></div>
+            <div class="field"><label for="t-nacimiento">Fecha de nacimiento</label><input type="date" id="t-nacimiento"></div>
+            <div class="field"><label for="t-equipaje">Tipo de equipaje</label><input type="text" id="t-equipaje" list="t-equipaje-opts" placeholder="Ej. Maleta documentada" autocomplete="off"><datalist id="t-equipaje-opts"><option value="Solo artículo personal"></option><option value="Equipaje de mano"></option><option value="Maleta documentada"></option><option value="Equipaje especial"></option></datalist></div>
+            <div class="field span2"><label for="t-itinerario">Itinerario sugerido <span class="opt">(opcional)</span></label><input type="file" id="t-itinerario" accept="image/*,application/pdf"><div class="hint">Imagen o PDF de hasta 4 MB.</div></div>
+          </div>
+        </div>
+
         <div class="row2">
           <div class="field">
             <label for="f-insumo-cantidad">Insumo a utilizar</label>
             <input type="number" id="f-insumo-cantidad" name="insumo_cantidad" min="1" max="30" step="1" placeholder="Insumos" required>
             <div class="insumo-items" id="insumo-items"></div>
+            <div class="insumo-resumen" id="insumo-resumen" hidden></div>
           </div>
           <div class="field">
-            <label for="f-presupuesto">Presupuesto disponible</label>
+            <label for="f-presupuesto">Presupuesto disponible total</label>
             <div class="presupuesto-row">
               <input type="text" id="f-presupuesto" name="presupuesto" placeholder="Ej. 5,000.00">
               <select id="f-moneda" name="moneda" disabled>
@@ -574,6 +603,8 @@
       current = insumoItemsWrap.querySelectorAll('.f-insumo-item');
     }
     for (var i = current.length; i < n; i++) {
+      var row = document.createElement('div');
+      row.className = 'insumo-row';
       var combo = document.createElement('div');
       combo.className = 'insumo-combo';
       var input = document.createElement('input');
@@ -585,13 +616,31 @@
       input.setAttribute('role', 'combobox');
       input.setAttribute('aria-autocomplete', 'list');
       combo.appendChild(input);
-      insumoItemsWrap.appendChild(combo);
+      row.appendChild(combo);
+      var pw = document.createElement('div');
+      pw.className = 'insumo-presu';
+      var pi = document.createElement('input');
+      pi.type = 'text';
+      pi.className = 'f-insumo-presu';
+      pi.name = 'insumo_presu_' + (i + 1);
+      pi.placeholder = 'Presupuesto para este insumo';
+      pi.autocomplete = 'off';
+      pi.inputMode = 'decimal';
+      pi.setAttribute('aria-label', 'Presupuesto para este insumo #' + (i + 1));
+      pi.addEventListener('input', function (ev) { ev.target.value = formatPresupuesto(ev.target.value); actualizarResumenPresu(); });
+      var ps = document.createElement('span');
+      ps.textContent = 'MXN';
+      pw.appendChild(pi);
+      pw.appendChild(ps);
+      row.appendChild(pw);
+      insumoItemsWrap.appendChild(row);
       attachInsumoCombo(input, combo);
     }
   }
 
   insumoCantidadInput.addEventListener('input', function () {
     renderInsumoItems(parseInt(insumoCantidadInput.value, 10));
+    actualizarResumenPresu();
   });
 
   function formatPresupuesto(raw) {
@@ -612,7 +661,60 @@
 
   presupuestoInput.addEventListener('input', function () {
     presupuestoInput.value = formatPresupuesto(presupuestoInput.value);
+    actualizarResumenPresu();
   });
+
+  function montoNum(s) { var n = parseFloat(String(s || '').replace(/[^\d.]/g, '')); return isNaN(n) ? 0 : n; }
+  function fmtMonto(n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function fmtFechaIso(s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); return m ? (m[3] + '/' + m[2] + '/' + m[1]) : (s || ''); }
+  function actualizarResumenPresu() {
+    var res = document.getElementById('insumo-resumen');
+    if (!res) return;
+    var els = insumoItemsWrap.querySelectorAll('.f-insumo-presu');
+    var suma = 0, algo = false;
+    Array.prototype.forEach.call(els, function (e) { if (e.value) algo = true; suma += montoNum(e.value); });
+    if (!algo) { res.hidden = true; res.classList.remove('excede'); return; }
+    var total = montoNum(presupuestoInput.value);
+    res.hidden = false;
+    if (!total) { res.textContent = 'Asignado a insumos: ' + fmtMonto(suma) + ' MXN. Captura el presupuesto disponible total.'; res.classList.add('excede'); return; }
+    var resta = total - suma;
+    if (resta < -0.005) { res.textContent = 'Asignado ' + fmtMonto(suma) + ' de ' + fmtMonto(total) + ' MXN: te pasas por ' + fmtMonto(-resta) + '.'; res.classList.add('excede'); }
+    else { res.textContent = 'Asignado ' + fmtMonto(suma) + ' de ' + fmtMonto(total) + ' MXN · por asignar ' + fmtMonto(resta) + '.'; res.classList.remove('excede'); }
+  }
+
+  // Datos del viaje (solo si la categoría es Transportación)
+  var transporteBox = document.getElementById('transporte-box');
+  function esTransporte() { var c = form.querySelector('[name="categoria"]:checked'); return !!c && c.value === 'Transportación'; }
+  function syncTransporte() { transporteBox.hidden = !esTransporte(); }
+  form.addEventListener('change', function (e) { if (e.target && e.target.name === 'categoria') syncTransporte(); });
+  (function () {
+    var hoy = new Date(); var pad = function (n) { return String(n).padStart(2, '0'); };
+    var iso = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1) + '-' + pad(hoy.getDate());
+    document.getElementById('t-fecha').min = iso;
+    document.getElementById('t-nacimiento').max = iso;
+  })();
+  function fileToPayload(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function (e) { resolve({ filename: file.name || 'itinerario.pdf', mimeType: file.type || 'application/pdf', data: String(e.target.result).split(',')[1] }); };
+      reader.onerror = function () { reject(new Error('read_failed')); };
+      reader.readAsDataURL(file);
+    });
+  }
+  function resumenExtra(r) {
+    var out = [];
+    (r.insumoItems || []).forEach(function (n, i) {
+      var p = (r.insumoPresupuestos || [])[i];
+      if (p) out.push(['Presupuesto · ' + n, p + ' ' + (r.moneda || 'MXN')]);
+    });
+    var t = r.transporte;
+    if (t) {
+      out.push(['Ruta', t.ruta]); out.push(['Fecha de viaje', fmtFechaIso(t.fechaViaje)]); out.push(['Horario sugerido', t.horario]);
+      out.push(['Pasajero', t.pasajero]); out.push(['Fecha de nacimiento', fmtFechaIso(t.fechaNacimiento)]); out.push(['Equipaje', t.equipaje]);
+      if (t.itinerario) out.push(['Itinerario', 'Adjunto (' + t.itinerario.filename + ')']);
+    }
+    return out;
+  }
 
   function addItemRow(prefill) {
     prefill = prefill || {};
@@ -772,13 +874,14 @@
       'Centro de costo (CC): ' + t.cc,
       'Obra: ' + (t.obra || '—'),
       'Insumo a utilizar: ' + t.insumo,
-      'Presupuesto disponible: ' + (t.presupuesto ? (t.presupuesto + ' ' + t.moneda) : '—'),
+      'Presupuesto disponible total: ' + (t.presupuesto ? (t.presupuesto + ' ' + t.moneda) : '—'),
       'Oficina / Ubicación: ' + (t.oficina || '—'),
       'Tipo de solicitud: ' + t.tipo,
       'Categoría: ' + t.categoria,
       '',
       'Materiales / servicios solicitados:'
     ];
+    resumenExtra(t).forEach(function (par) { lines.splice(lines.length - 2, 0, par[0] + ': ' + par[1]); });
     t.items.forEach(function (it, i) {
       lines.push('');
       lines.push((i + 1) + '. ' + it.cantidad + ' ' + it.unidad + ' — ' + it.descripcion);
@@ -823,8 +926,32 @@
     var categoria = fieldValue('categoria');
     var itemsResult = collectItems();
 
-    if (!solicitante || !autoriza || !contacto || !empresa || !cc || !insumo || !insumoItemsValid || !tipo || !categoria || !itemsResult.valid || itemsResult.items.length === 0) {
+    var insumoPresus = insumoItemEls.map(function (el) { var row = el.closest('.insumo-row'); var p = row && row.querySelector('.f-insumo-presu'); return p ? p.value.trim() : ''; });
+    var sumaPresus = insumoPresus.reduce(function (a, v) { return a + montoNum(v); }, 0);
+    var algunPresu = insumoPresus.some(Boolean);
+    var totalPresu = montoNum(presupuesto);
+    var extraError = '';
+    if (algunPresu && !totalPresu) extraError = 'Captura el presupuesto disponible total para repartirlo entre los insumos.';
+    else if (algunPresu && sumaPresus > totalPresu + 0.005) extraError = 'La suma del presupuesto de los insumos (' + fmtMonto(sumaPresus) + ') supera el presupuesto disponible total (' + fmtMonto(totalPresu) + ').';
+    var transporte = null, itinFile = null;
+    if (categoria === 'Transportación') {
+      var dT = function (id) { return document.getElementById(id).value.trim(); };
+      transporte = { ruta: dT('t-ruta'), fechaViaje: dT('t-fecha'), horario: dT('t-horario'), pasajero: dT('t-pasajero'), fechaNacimiento: dT('t-nacimiento'), equipaje: dT('t-equipaje') };
+      itinFile = document.getElementById('t-itinerario').files[0] || null;
+      if (!transporte.ruta || !transporte.fechaViaje || !transporte.horario || !transporte.pasajero || !transporte.fechaNacimiento || !transporte.equipaje) {
+        if (!extraError) extraError = 'Completa los datos del viaje: ruta, fecha de viaje, horario sugerido, nombre del pasajero, fecha de nacimiento y tipo de equipaje.';
+      } else if (itinFile && !/^image\//.test(itinFile.type) && itinFile.type !== 'application/pdf') {
+        if (!extraError) extraError = 'El itinerario debe ser una imagen o un PDF.';
+      } else if (itinFile && itinFile.type === 'application/pdf' && itinFile.size > 4 * 1024 * 1024) {
+        if (!extraError) extraError = 'El itinerario en PDF pesa más de 4 MB. Adjunta uno más ligero o una imagen.';
+      }
+    }
+    if (!errorMsg.dataset.def) errorMsg.dataset.def = errorMsg.textContent;
+
+    if (extraError || !solicitante || !autoriza || !contacto || !empresa || !cc || !insumo || !insumoItemsValid || !tipo || !categoria || !itemsResult.valid || itemsResult.items.length === 0) {
+      errorMsg.textContent = extraError || errorMsg.dataset.def;
       errorMsg.classList.add('show');
+      try { errorMsg.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { /* sin scroll */ }
       return;
     }
     errorMsg.classList.remove('show');
@@ -839,11 +966,15 @@
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitBtnOriginalText; }
     }
 
+    if (transporte && itinFile) {
+      try { transporte.itinerario = itinFile.type === 'application/pdf' ? await fileToPayload(itinFile) : await resizeImageFile(itinFile, 1600, 0.8); } catch (e) { /* el viaje se envía sin itinerario */ }
+    }
+
     var req = {
       id: makeFolio(),
       fecha: new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }),
       solicitante: solicitante, autoriza: autoriza, contacto: contacto, empresa: empresa, cc: cc,
-      obra: obra, insumo: insumo, insumoCantidad: insumoCantidad, insumoItems: insumoItems, presupuesto: presupuesto, moneda: moneda, oficina: oficina, tipo: tipo, categoria: categoria, items: processedItems,
+      obra: obra, insumo: insumo, insumoCantidad: insumoCantidad, insumoItems: insumoItems, insumoPresupuestos: insumoPresus, transporte: transporte, presupuesto: presupuesto, moneda: moneda, oficina: oficina, tipo: tipo, categoria: categoria, items: processedItems,
       estado: 'pendiente'
     };
 
@@ -882,9 +1013,9 @@
       ['Solicita', req.solicitante], ['Autoriza', req.autoriza], ['Empresa', req.empresa],
       ['Centro de costo', req.cc], ['Tipo', req.tipo], ['Categoría', req.categoria],
       ['Obra / Oficina', [req.obra, req.oficina].filter(Boolean).join(' · ') || '—'],
-      ['Insumo a utilizar', req.insumo], ['Presupuesto disponible', req.presupuesto ? (req.presupuesto + ' ' + req.moneda) : '—'],
+      ['Insumo a utilizar', req.insumo], ['Presupuesto disponible total', req.presupuesto ? (req.presupuesto + ' ' + req.moneda) : '—'],
       ['Contacto', req.contacto]
-    ].forEach(function (pair) {
+    ].concat(resumenExtra(req)).forEach(function (pair) {
       var row = document.createElement('div');
       var dt = document.createElement('dt'); dt.textContent = pair[0];
       var dd = document.createElement('dd'); dd.textContent = pair[1];
@@ -921,6 +1052,8 @@
     itemCount = 0;
     addItemRow();
     insumoItemsWrap.innerHTML = '';
+    syncTransporte();
+    actualizarResumenPresu();
     errorMsg.classList.remove('show');
     confirmView.hidden = true;
     form.hidden = false;
