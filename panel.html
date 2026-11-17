@@ -112,6 +112,11 @@
   .req-items th { background: var(--paper); color: var(--ink-soft); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: .02em; }
   .req-items tr:last-child td { border-bottom: none; }
   .req-items .just { font-size: 11.5px; color: var(--ink-soft); }
+  .req-items th.chk, .req-items td.chk { width: 44px; text-align: center; padding-right: 4px; }
+  .req-items input.comprado { width: 18px; height: 18px; accent-color: var(--success); cursor: pointer; }
+  .req-items tr.is-comprado td { background: var(--success-bg); }
+  .req-items .comprado-fecha { display: block; font-size: 11px; color: var(--success); margin-top: 2px; }
+  .compra-resumen { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-soft); padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface); }
   .item-imgs { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
   .item-imgs a { display: block; }
   .item-imgs img { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
@@ -334,6 +339,7 @@
       <div class="req-items" id="detail-items"></div>
     </div>
     <div class="modal-actions">
+      <button type="button" class="primary" id="detail-bitacora" title="Genera un PDF con los productos para que firmen de recibido">Bitácora de entrega (PDF)</button>
       <button type="button" class="secondary" id="detail-close">Cerrar</button>
     </div>
   </div>
@@ -413,6 +419,8 @@
   var detailFecha = document.getElementById('detail-fecha');
   var detailItems = document.getElementById('detail-items');
   var detailClose = document.getElementById('detail-close');
+    var detailBitacora = document.getElementById('detail-bitacora');
+    var detailReqId = null;
 
   // Pega aquí la URL de tu Web App de Google Apps Script (la misma que en el formulario de captura).
   var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzP6eJ7PI653CMcyfAkbgsCxY9qLWWD6kPQrLixoMwPEW8QZKr2ozyAm0ZAsmQ_tNPO/exec';
@@ -723,7 +731,241 @@
     }
   }
 
-  function openDetail(r) {
+      // ---- Avance de compra por producto (casilla "Comprado") ----
+    function fmtCompra(s) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(s || ''));
+      return m ? (m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5]) : '';
+    }
+    function ahoraLocalIso() {
+      var d = new Date();
+      return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    }
+    function actualizarResumenCompra() {
+      var cbs = detailItems.querySelectorAll('input.comprado');
+      var n = 0;
+      Array.prototype.forEach.call(cbs, function (c) { if (c.checked) n++; });
+      var el = document.getElementById('compra-resumen-txt');
+      if (el) el.innerHTML = 'Comprados: <b>' + n + '</b> de ' + cbs.length + (cbs.length && n === cbs.length ? ' · todo comprado' : '');
+    }
+    function pintarFilaCompra(cb, on, fecha) {
+      var tr = cb.closest('tr');
+      cb.checked = on;
+      tr.classList.toggle('is-comprado', on);
+      var td = tr.children[3];
+      var f = td.querySelector('.comprado-fecha');
+      if (f) f.parentNode.removeChild(f);
+      if (on && fecha) {
+        var s = document.createElement('span');
+        s.className = 'comprado-fecha';
+        s.textContent = 'Comprado ' + fmtCompra(fecha);
+        td.insertBefore(s, td.childNodes[1] || null);
+      }
+    }
+    function toggleCompra(id, cb) {
+      var idx = cb.getAttribute('data-idx');
+      var marcado = cb.checked;
+      var rec = allReqs.filter(function (x) { return x.id === id; })[0];
+      var previo = rec && rec.compras ? rec.compras[idx] : undefined;
+      var ahora = ahoraLocalIso();
+      if (rec) {
+        rec.compras = rec.compras || {};
+        if (marcado) rec.compras[idx] = ahora; else delete rec.compras[idx];
+      }
+      pintarFilaCompra(cb, marcado, ahora);
+      actualizarResumenCompra();
+      cb.disabled = true;
+      fetch(buildUrl({ action: 'compra', id: id, idx: idx, val: marcado ? 1 : 0 }))
+        .then(function (res) { return res.json(); })
+        .then(function (j) {
+          if (!j || !j.ok) throw new Error('no_ok');
+          if (rec) rec.compras = j.compras || {};
+          var f = (j.compras || {})[idx];
+          if (marcado && f) pintarFilaCompra(cb, true, f);
+          cb.disabled = false;
+        })
+        .catch(function () {
+          alert('No se pudo guardar el cambio. Revisa tu conexión e inténtalo de nuevo.');
+          if (rec) { rec.compras = rec.compras || {}; if (previo) rec.compras[idx] = previo; else delete rec.compras[idx]; }
+          pintarFilaCompra(cb, !marcado, previo);
+          actualizarResumenCompra();
+          cb.disabled = false;
+        });
+    }
+
+    // ---- Bitácora de entrega (PDF para firma de recibido) ----
+    function generarBitacoraEntrega() {
+      var r = allReqs.filter(function (x) { return x.id === detailReqId; })[0];
+      if (!r) return;
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo.');
+        return;
+      }
+      var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter' });
+      if (typeof doc.autoTable !== 'function') {
+        alert('No se pudo cargar la tabla del PDF. Revisa tu conexión e intenta de nuevo.');
+        return;
+      }
+      var items = r.items || [];
+      var marcados = {};
+      var nMarcados = 0;
+      Array.prototype.forEach.call(detailItems.querySelectorAll('input.comprado'), function (cb) {
+        if (cb.checked) { marcados[cb.getAttribute('data-idx')] = true; nMarcados++; }
+      });
+      var filas = [];
+      items.forEach(function (it, i) {
+        if (nMarcados && !marcados[String(i)]) return;
+        filas.push([String(filas.length + 1), String(it.cantidad || ''), String(it.unidad || ''), String(it.descripcion || ''), '', '']);
+      });
+      if (!filas.length) {
+        alert('Esta requisición no tiene productos para entregar.');
+        return;
+      }
+      var pendientes = nMarcados ? items.length - nMarcados : 0;
+
+      var ink = [29, 29, 27];
+      var inkSoft = [107, 98, 96];
+      var amber = [249, 178, 51];
+      var line = [200, 190, 175];
+      var W = doc.internal.pageSize.getWidth();
+      var H = doc.internal.pageSize.getHeight();
+      var M = 40;
+      doc.setProperties({ title: 'Bitácora de entrega · ' + r.id });
+
+      doc.setFillColor(amber[0], amber[1], amber[2]);
+      doc.rect(0, 0, W, 78, 'F');
+      doc.setTextColor(ink[0], ink[1], ink[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(19);
+      doc.text('BITÁCORA DE ENTREGA', M, 36);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10.5);
+      doc.text('Requisición de Compra · Grupo Firme', M, 56);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.text(String(r.id || ''), W - M, 40, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.text('Fecha de requisición: ' + (r.fecha || fmtTime(r.receivedAt) || '—'), W - M, 58, { align: 'right' });
+
+      function v(x) { return (x === undefined || x === null || String(x).trim() === '') ? '—' : String(x); }
+      doc.autoTable({
+        startY: 94,
+        theme: 'plain',
+        styles: { font: 'helvetica', fontSize: 9.5, cellPadding: { top: 3, bottom: 3, left: 4, right: 4 }, textColor: ink, overflow: 'linebreak' },
+        columnStyles: {
+          0: { cellWidth: 92, fontStyle: 'bold', textColor: inkSoft },
+          1: { cellWidth: 'auto' },
+          2: { cellWidth: 92, fontStyle: 'bold', textColor: inkSoft },
+          3: { cellWidth: 'auto' }
+        },
+        body: [
+          ['Solicitante', v(r.solicitante), 'Empresa', v(r.empresa)],
+          ['Centro de costo', v(r.cc), 'Obra', v(r.obra)],
+          ['Entregar en', v(r.oficina), 'Autoriza', v(r.autoriza)],
+          ['Contacto', v(r.contacto), 'Tipo', v(r.tipo === 'Normal' ? 'Ordinaria' : r.tipo)]
+        ],
+        margin: { left: M, right: M }
+      });
+      var y = doc.lastAutoTable.finalY + 14;
+      doc.setDrawColor(line[0], line[1], line[2]);
+      doc.line(M, y - 6, W - M, y - 6);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(ink[0], ink[1], ink[2]);
+      doc.text('Artículos a entregar', M, y + 8);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(inkSoft[0], inkSoft[1], inkSoft[2]);
+      doc.text(nMarcados ? 'Solo productos marcados como comprados.' : 'Se listan todos los productos de la requisición.', W - M, y + 8, { align: 'right' });
+
+      doc.autoTable({
+        startY: y + 16,
+        head: [['#', 'Cant.', 'Unidad', 'Descripción', 'Entregado', 'Observaciones']],
+        body: filas,
+        theme: 'grid',
+        styles: { font: 'helvetica', fontSize: 9.5, cellPadding: 6, textColor: ink, lineColor: line, lineWidth: 0.5, minCellHeight: 26, valign: 'middle', overflow: 'linebreak' },
+        headStyles: { fillColor: [245, 237, 224], textColor: ink, fontStyle: 'bold', fontSize: 8.5, halign: 'left' },
+        columnStyles: {
+          0: { cellWidth: 26, halign: 'center' },
+          1: { cellWidth: 40, halign: 'center' },
+          2: { cellWidth: 56 },
+          3: { cellWidth: 'auto' },
+          4: { cellWidth: 64, halign: 'center' },
+          5: { cellWidth: 110 }
+        },
+        didDrawCell: function (d) {
+          if (d.section === 'body' && d.column.index === 4) {
+            var s = 13;
+            doc.setDrawColor(ink[0], ink[1], ink[2]);
+            doc.setLineWidth(0.8);
+            doc.rect(d.cell.x + (d.cell.width - s) / 2, d.cell.y + (d.cell.height - s) / 2, s, s);
+            doc.setLineWidth(0.5);
+          }
+        },
+        margin: { left: M, right: M, bottom: 50 }
+      });
+      y = doc.lastAutoTable.finalY + 12;
+
+      if (pendientes > 0) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8.5);
+        doc.setTextColor(inkSoft[0], inkSoft[1], inkSoft[2]);
+        doc.text('Nota: ' + pendientes + (pendientes === 1 ? ' producto de esta requisición aún no está comprado y no se incluye en esta entrega.' : ' productos de esta requisición aún no están comprados y no se incluyen en esta entrega.'), M, y);
+        y += 14;
+      }
+
+      // Observaciones + firmas (si no caben, pasan a una hoja nueva)
+      if (y > H - 270) { doc.addPage(); y = 50; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(ink[0], ink[1], ink[2]);
+      doc.text('Observaciones', M, y + 4);
+      doc.setDrawColor(line[0], line[1], line[2]);
+      doc.setLineWidth(0.5);
+      for (var k = 1; k <= 2; k++) doc.line(M, y + 4 + k * 18, W - M, y + 4 + k * 18);
+      y += 66;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(inkSoft[0], inkSoft[1], inkSoft[2]);
+      doc.text('Recibí de conformidad los artículos descritos en esta bitácora, en la cantidad y condición indicadas.', M, y);
+      y += 18;
+
+      var colW = (W - 2 * M - 30) / 2;
+      var bloques = [
+        { x: M, titulo: 'ENTREGA (Mensajería / Office boy)' },
+        { x: M + colW + 30, titulo: 'RECIBE DE CONFORMIDAD' }
+      ];
+      bloques.forEach(function (b) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(ink[0], ink[1], ink[2]);
+        doc.text(b.titulo, b.x, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(inkSoft[0], inkSoft[1], inkSoft[2]);
+        doc.setDrawColor(ink[0], ink[1], ink[2]);
+        doc.line(b.x, y + 52, b.x + colW, y + 52);
+        doc.text('Firma', b.x, y + 63);
+        doc.line(b.x, y + 92, b.x + colW, y + 92);
+        doc.text('Nombre completo', b.x, y + 103);
+        doc.line(b.x, y + 132, b.x + colW, y + 132);
+        doc.text('Fecha y hora', b.x, y + 143);
+      });
+
+      var total = doc.getNumberOfPages();
+      for (var p = 1; p <= total; p++) {
+        doc.setPage(p);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(inkSoft[0], inkSoft[1], inkSoft[2]);
+        doc.text(String(r.id || '') + ' · Bitácora de entrega · Generada el ' + new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }), M, H - 24);
+        doc.text('Página ' + p + ' de ' + total, W - M, H - 24, { align: 'right' });
+      }
+      doc.save('Bitacora_Entrega_' + String(r.id || 'REQ').replace(/[^A-Za-z0-9_-]/g, '') + '.pdf');
+    }
+
+    function openDetail(r) {
     detailTitle.textContent = r.id;
     detailTags.textContent = '';
     if (r.tipo === 'Extraordinaria') {
@@ -748,19 +990,30 @@
     detailOficina.textContent = fmtVal(r.oficina);
     detailFecha.textContent = r.fecha || fmtTime(r.receivedAt) || '—';
 
-    var rowsHtml = '<table><thead><tr><th>Cant.</th><th>Unidad</th><th>Descripci\u00f3n</th><th>Prioridad</th></tr></thead><tbody>';
-    (r.items || []).forEach(function (it) {
+    detailReqId = r.id;
+    var compras = r.compras || {};
+    var listaItems = r.items || [];
+    var nComp = 0;
+    listaItems.forEach(function (it, i) { if (compras[String(i)]) nComp++; });
+    var rowsHtml = '<div class="compra-resumen"><span id="compra-resumen-txt">Comprados: <b>' + nComp + '</b> de ' + listaItems.length + (listaItems.length && nComp === listaItems.length ? ' · todo comprado' : '') + '</span><span>Marca cada producto cuando ya se compró</span></div>' +
+      '<table><thead><tr><th class="chk" title="Comprado">Comp.</th><th>Cant.</th><th>Unidad</th><th>Descripción</th><th>Prioridad</th></tr></thead><tbody>';
+    listaItems.forEach(function (it, i) {
       var imgsHtml = '';
       if (it.imagenesUrls && it.imagenesUrls.length) {
         imgsHtml = '<div class="item-imgs">' + it.imagenesUrls.map(function (img) {
           return '<a href="' + img.url + '" target="_blank" rel="noopener"><img src="' + img.thumb + '" alt="Imagen de referencia" loading="lazy"></a>';
         }).join('') + '</div>';
       }
-      rowsHtml += '<tr><td>' + (it.cantidad || '') + '</td><td>' + (it.unidad || '') + '</td><td>' + (it.descripcion || '') +
+      var cf = compras[String(i)];
+      rowsHtml += '<tr class="' + (cf ? 'is-comprado' : '') + '"><td class="chk"><input type="checkbox" class="comprado" data-idx="' + i + '"' + (cf ? ' checked' : '') + ' aria-label="Marcar producto como comprado"></td><td>' + (it.cantidad || '') + '</td><td>' + (it.unidad || '') + '</td><td>' + (it.descripcion || '') +
+        (cf ? '<span class="comprado-fecha">Comprado ' + fmtCompra(cf) + '</span>' : '') +
         (it.justificacion ? '<div class="just">' + it.justificacion + '</div>' : '') + imgsHtml + '</td><td>' + (it.prioridad || '') + '</td></tr>';
     });
     rowsHtml += '</tbody></table>';
     detailItems.innerHTML = rowsHtml;
+    Array.prototype.forEach.call(detailItems.querySelectorAll('input.comprado'), function (cb) {
+      cb.addEventListener('change', function () { toggleCompra(r.id, cb); });
+    });
 
     detailBackdrop.hidden = false;
   }
@@ -768,6 +1021,7 @@
   function closeDetail() { detailBackdrop.hidden = true; }
 
   detailClose.addEventListener('click', closeDetail);
+    detailBitacora.addEventListener('click', function () { generarBitacoraEntrega(); });
   detailBackdrop.addEventListener('click', function (ev) {
     if (ev.target === detailBackdrop) closeDetail();
   });
