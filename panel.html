@@ -831,25 +831,27 @@
       var M = 40;
       doc.setProperties({ title: 'Bitácora de entrega · ' + r.id });
 
-      doc.setFillColor(amber[0], amber[1], amber[2]);
-      doc.rect(0, 0, W, 78, 'F');
       doc.setTextColor(ink[0], ink[1], ink[2]);
+      var logoEl = document.querySelector('img.brand-logo');
+      if (logoEl && logoEl.src && logoEl.naturalWidth) {
+        var lh = 46;
+        var lw = lh * logoEl.naturalWidth / logoEl.naturalHeight;
+        try { doc.addImage(logoEl.src, 'PNG', M, 16, lw, lh); } catch (err) {}
+      }
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(19);
-      doc.text('BITÁCORA DE ENTREGA', M, 36);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10.5);
-      doc.text('Requisición de Compra · Grupo Firme', M, 56);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(20);
-      doc.text(String(r.id || ''), W - M, 40, { align: 'right' });
+      doc.setFontSize(17);
+      doc.text('BITÁCORA DE ENTREGA', W - M, 32, { align: 'right' });
+      doc.setFontSize(13);
+      doc.text(String(r.id || ''), W - M, 50, { align: 'right' });
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9.5);
-      doc.text('Fecha de requisición: ' + (r.fecha || fmtTime(r.receivedAt) || '—'), W - M, 58, { align: 'right' });
+      doc.text('Fecha de requisición: ' + (r.fecha || fmtTime(r.receivedAt) || '—'), W - M, 64, { align: 'right' });
+      doc.setFillColor(amber[0], amber[1], amber[2]);
+      doc.rect(0, 76, W, 5, 'F');
 
       function v(x) { return (x === undefined || x === null || String(x).trim() === '') ? '—' : String(x); }
       doc.autoTable({
-        startY: 94,
+        startY: 102,
         theme: 'plain',
         styles: { font: 'helvetica', fontSize: 9.5, cellPadding: { top: 3, bottom: 3, left: 4, right: 4 }, textColor: ink, overflow: 'linebreak' },
         columnStyles: {
@@ -933,7 +935,7 @@
 
       var colW = (W - 2 * M - 30) / 2;
       var bloques = [
-        { x: M, titulo: 'ENTREGA (Mensajería / Office boy)' },
+        { x: M, titulo: 'ENTREGA' },
         { x: M + colW + 30, titulo: 'RECIBE DE CONFORMIDAD' }
       ];
       bloques.forEach(function (b) {
